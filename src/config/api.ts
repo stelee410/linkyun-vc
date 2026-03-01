@@ -21,6 +21,9 @@ export const SYSTEM_ASSISTANT_AGENT_CODE = import.meta.env.VITE_SYSTEM_ASSISTANT
 /** 生成聊天标题用的 simulate 服务 AI Agent code */
 export const SYSTEM_SERVICE_AGENT_CODE = import.meta.env.VITE_SYSTEM_SERVICE_AGENT_CODE as string | undefined;
 
+/** 注册邀请码 */
+export const REGISTER_INVITATION_CODE = import.meta.env.VITE_REGISTER_INVITATION_CODE as string | undefined;
+
 export function getApiUrl(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${p}`;

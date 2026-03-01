@@ -3,19 +3,20 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Plus, MessageSquare, Trash2, LogOut, X, Loader2, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { ChatSession } from '../../types';
+import { texts, tw } from '../../themes';
 
 type Variant = 'individual' | 'lawyer';
 
 const variantStyles = {
   individual: {
-    active: 'bg-blue-50 text-blue-700 border-blue-100',
-    inactive: 'hover:bg-gray-100 text-gray-600',
-    menuHover: 'hover:bg-blue-50 hover:text-blue-700',
+    active: tw.active,
+    inactive: tw.inactive,
+    menuHover: tw.menuHover,
   },
   lawyer: {
-    active: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    inactive: 'hover:bg-gray-100 text-gray-600',
-    menuHover: 'hover:bg-emerald-50 hover:text-emerald-700',
+    active: tw.active,
+    inactive: tw.inactive,
+    menuHover: tw.menuHover,
   },
 };
 
@@ -72,13 +73,13 @@ export default function ChatSidebar({
 
       <motion.aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 bg-[#F8F9FA] border-r border-gray-100 flex flex-col transition-transform md:relative md:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-72 bg-slate-50 border-r border-slate-100 flex flex-col transition-transform md:relative md:translate-x-0',
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-bold text-lg text-gray-900">法律 AI</h2>
-          <button onClick={onCloseSidebar} className="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-bold text-lg text-slate-900">{texts.brand.name}</h2>
+          <button onClick={onCloseSidebar} className="md:hidden p-2 hover:bg-slate-100 rounded-lg">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -87,14 +88,14 @@ export default function ChatSidebar({
           <button
             onClick={onCreateSession}
             disabled={creatingSession}
-            className="w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50"
+            className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
           >
             {creatingSession ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            发起新对话
+            {texts.individual.newChat}
           </button>
 
           {menuItems.map((item) => (
@@ -103,7 +104,7 @@ export default function ChatSidebar({
               onClick={item.onClick}
               disabled={item.disabled}
               className={cn(
-                'w-full flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition-colors text-gray-600',
+                'w-full flex items-center gap-3 p-3 rounded-xl text-sm font-medium transition-colors text-slate-600',
                 styles.menuHover,
                 item.disabled && 'opacity-50 cursor-not-allowed'
               )}
@@ -116,7 +117,7 @@ export default function ChatSidebar({
 
         {sessions.length > 0 && (
           <div className="px-4 py-2">
-            <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider">历史对话</h3>
+            <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider">{texts.individual.historyTitle}</h3>
           </div>
         )}
 
@@ -136,7 +137,7 @@ export default function ChatSidebar({
               <div className="flex-1 min-w-0">
                 <span className="block truncate">{session.title}</span>
                 {session.agentName && (
-                  <span className="block text-xs text-gray-400 truncate">
+                  <span className="block text-xs text-slate-400 truncate">
                     {session.agentName}
                   </span>
                 )}
@@ -150,13 +151,13 @@ export default function ChatSidebar({
         </div>
 
         {onLogout && (
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-slate-100">
             <button
               onClick={onLogout}
-              className="w-full flex items-center gap-2 p-3 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm"
+              className="w-full flex items-center gap-2 p-3 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm"
             >
               <LogOut className="w-4 h-4" />
-              退出登录
+              {texts.common.logout}
             </button>
           </div>
         )}

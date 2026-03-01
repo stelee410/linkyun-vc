@@ -1,12 +1,13 @@
 import React, { useCallback } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Bot, UserCircle, Database, LogOut, Scale } from 'lucide-react';
+import { Bot, UserCircle, Database, LogOut, TrendingUp } from 'lucide-react';
 import { cn } from '../lib/utils';
 import AssistantView from './lawyer/AssistantView';
 import DigitalTwinView from './lawyer/DigitalTwinView';
 import KnowledgeBaseView from './lawyer/KnowledgeBaseView';
 import { clearAuth } from '../lib/authStorage';
+import { texts, tw } from '../themes';
 
 type Tab = 'assistant' | 'twin' | 'knowledge';
 
@@ -28,19 +29,19 @@ export default function LawyerPortal() {
   }, [navigate]);
 
   const tabs = [
-    { id: 'assistant', label: '律助对话', icon: Bot },
-    { id: 'twin', label: '数字分身', icon: UserCircle },
-    { id: 'knowledge', label: '知识库', icon: Database },
+    { id: 'assistant', label: texts.lawyer.tabs.assistant, icon: Bot },
+    { id: 'twin', label: texts.lawyer.tabs.twin, icon: UserCircle },
+    { id: 'knowledge', label: texts.lawyer.tabs.knowledge, icon: Database },
   ];
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8F9FA]">
-      <header className="bg-white border-b border-gray-100 px-6 h-16 flex items-center justify-between sticky top-0 z-10">
+    <div className="flex flex-col h-screen bg-slate-50">
+      <header className="bg-white border-b border-slate-100 px-6 h-16 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
-            <Scale className="w-5 h-5" />
+          <div className={`w-8 h-8 ${tw.logoBg} rounded-lg flex items-center justify-center text-white`}>
+            <TrendingUp className="w-5 h-5" />
           </div>
-          <h1 className="font-bold text-gray-900">律师端控制台</h1>
+          <h1 className="font-bold text-slate-900">{texts.lawyer.headerTitle}</h1>
         </div>
         <button
           onClick={handleLogout}
@@ -63,14 +64,14 @@ export default function LawyerPortal() {
         )}
       </main>
 
-      <nav className="bg-white border-t border-gray-100 px-6 py-3 flex justify-around items-center sticky bottom-0">
+      <nav className="bg-white border-t border-slate-100 px-6 py-3 flex justify-around items-center sticky bottom-0">
         {tabs.map((tabItem) => (
           <button
             key={tabItem.id}
             onClick={() => navigate(`/lawyer/${tabItem.id}`)}
             className={cn(
               'flex flex-col items-center gap-1 transition-all',
-              activeTab === tabItem.id ? 'text-emerald-600' : 'text-gray-400 hover:text-gray-600'
+              activeTab === tabItem.id ? tw.tabActive : tw.tabInactive
             )}
           >
             <tabItem.icon className={cn('w-6 h-6', activeTab === tabItem.id && 'scale-110')} />
@@ -78,7 +79,7 @@ export default function LawyerPortal() {
             {activeTab === tabItem.id && (
               <motion.div
                 layoutId="activeTab"
-                className="w-1 h-1 bg-emerald-600 rounded-full mt-0.5"
+                className={`w-1 h-1 ${tw.tabIndicator} rounded-full mt-0.5`}
               />
             )}
           </button>

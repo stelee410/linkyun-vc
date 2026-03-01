@@ -5,6 +5,7 @@ import { FileText } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getApiUrl } from '../../config/api';
 import type { Message } from '../../types';
+import { tw } from '../../themes';
 
 /** 图片预览 URL：优先 previewUrl，其次用 token 构造下载地址 */
 function getImagePreviewUrl(att: { token?: string; previewUrl?: string; type?: string }): string | undefined {
@@ -43,12 +44,12 @@ type Variant = 'individual' | 'lawyer';
 
 const variantStyles = {
   individual: {
-    user: 'bg-blue-600 text-white rounded-tr-none',
-    assistant: 'bg-gray-50 text-gray-800 border border-gray-100 rounded-tl-none prose-pre:bg-gray-300 prose-pre:text-gray-800 prose-code:bg-gray-300 prose-code:text-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
+    user: tw.msgUser,
+    assistant: `${tw.msgAssistant} prose-pre:bg-slate-200 prose-pre:text-slate-800 prose-code:bg-slate-200 prose-code:text-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none`,
   },
   lawyer: {
-    user: 'bg-emerald-600 text-white rounded-tr-none',
-    assistant: 'bg-gray-50 text-gray-800 border border-gray-100 rounded-tl-none prose-emerald prose-pre:bg-gray-300 prose-pre:text-gray-800 prose-code:bg-gray-300 prose-code:text-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none',
+    user: tw.msgUser,
+    assistant: `${tw.msgAssistant} prose-pre:bg-slate-200 prose-pre:text-slate-800 prose-code:bg-slate-200 prose-code:text-slate-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:before:content-none prose-code:after:content-none`,
   },
 };
 
@@ -85,13 +86,13 @@ export default function ChatMessageBubble({ message, variant = 'individual' }: C
                   className="rounded-lg max-h-24 object-cover border border-white/20"
                 />
               ) : (
-                <span
-                  key={i}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs',
-                    isUser ? 'bg-white/20' : 'bg-gray-200/80 text-gray-700'
-                  )}
-                >
+                  <span
+                    key={i}
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs',
+                      isUser ? 'bg-white/20' : 'bg-slate-200/80 text-slate-700'
+                    )}
+                  >
                   <FileText className="w-3.5 h-3.5 shrink-0" />
                   {att.name ?? '附件'}
                 </span>

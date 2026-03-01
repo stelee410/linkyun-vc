@@ -17,6 +17,7 @@ import { listKnowledgeBases, type KnowledgeBaseInfo } from '../../services/knowl
 import { ensureCreatorHasSkill } from '../../services/skills';
 import { AVATAR_BASE_URL } from '../../config/api';
 import AvatarCropModal from '../AvatarCropModal';
+import { texts, tw } from '../../themes';
 
 interface DigitalTwinEditViewProps {
   agentId: string;
@@ -223,9 +224,9 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
 
   if (loading || !agent) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-        <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="mt-3 text-sm">加载中...</p>
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <div className={`w-10 h-10 border-2 ${tw.spinnerBorder} border-t-transparent rounded-full animate-spin`} />
+        <p className="mt-3 text-sm">{texts.common.loading}</p>
       </div>
     );
   }
@@ -240,21 +241,21 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 mb-2">
-        <h2 className="text-xl font-bold text-gray-900">编辑数字分身</h2>
+        <h2 className="text-xl font-bold text-slate-900">{texts.lawyer.twin.editTitle}</h2>
         {currentStatus === 'active' ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 ${tw.iconBg} ${tw.iconColor} text-xs font-medium rounded-full`}>
             <Globe className="w-3 h-3" />
-            已发布
+            {texts.lawyer.twin.published}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
             <FileEdit className="w-3 h-3" />
-            草稿
+            {texts.lawyer.twin.draft}
           </span>
         )}
       </div>
 
-      <div className="bg-white rounded-3xl border border-gray-100 p-6 space-y-6">
+      <div className="bg-white rounded-3xl border border-slate-100 p-6 space-y-6">
         <div className="flex items-center gap-4">
           <div className="relative group">
             {showAvatar ? (
@@ -262,12 +263,12 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
                 key={latestAvatarUrl}
                 src={latestAvatarUrl!}
                 alt="头像"
-                className="w-16 h-16 rounded-full object-cover border-2 border-emerald-100"
+                className={`w-16 h-16 rounded-full object-cover border-2 ${tw.avatarBorder}`}
                 onError={() => setAvatarLoadError(true)}
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+              <div className={`w-16 h-16 ${tw.iconBg} rounded-full flex items-center justify-center ${tw.iconColor}`}>
                 <UserCircle className="w-8 h-8" />
               </div>
             )}
@@ -280,12 +281,12 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
             />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-gray-900">{agent.name || '数字分身'}</p>
+            <p className="text-sm font-medium text-slate-900">{agent.name || '投资画像'}</p>
             <div className="flex gap-2 mt-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={avatarUploading}
-                className="text-emerald-600 text-xs font-bold"
+                className={`${tw.iconColor} text-xs font-bold`}
               >
                 {avatarUploading ? '上传中...' : '上传'}
               </button>
@@ -303,44 +304,44 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">名称</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">名称</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">唯一编码 (code)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">唯一编码 (code)</label>
           <input
             type="text"
             value={code}
             disabled
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500"
+            className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-500"
           />
-          <p className="text-xs text-gray-400 mt-1">2-64 字符，小写字母、数字、下划线、连字符</p>
+          <p className="text-xs text-slate-400 mt-1">2-64 字符，小写字母、数字、下划线、连字符</p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">系统提示词</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">系统提示词</label>
           <textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
             rows={4}
-            placeholder="描述 AI 的性格、背景、对话风格等"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+            placeholder={texts.lawyer.twin.systemPromptPlaceholder}
+            className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus} resize-none`}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">知识库(RAG)</label>
-          <p className="text-xs text-gray-500 mb-2">绑定知识库后，AI 会基于知识库内容回答问题</p>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{texts.lawyer.twin.knowledgeBaseLabel}</label>
+          <p className="text-xs text-slate-500 mb-2">{texts.lawyer.twin.knowledgeBaseHint}</p>
           <select
             value={selectedKbId}
             onChange={(e) => setSelectedKbId(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
           >
             <option value="">不绑定</option>
             {knowledgeBases.map((kb) => (
@@ -352,18 +353,18 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">对话前技能</label>
+          <label className="block text-sm font-medium text-slate-700 mb-2">{texts.lawyer.twin.preSkillsLabel}</label>
           <div className="flex flex-wrap gap-2">
             {preSkills.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-2 px-3 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-sm"
+                className={`flex items-center gap-2 px-3 py-2 ${tw.iconBg} ${tw.iconColor} rounded-xl text-sm`}
               >
                 <span className="text-sm">{s.name ?? s.code ?? '技能'}</span>
                 <button
                   onClick={() => handleRemovePreSkill(s.id)}
-                  className="text-emerald-400 hover:text-red-500"
-                  title="删除"
+                  className={`${tw.link.replace(' hover:underline', '')} hover:text-red-500`}
+                  title={texts.common.delete}
                 >
                   ×
                 </button>
@@ -374,10 +375,10 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
                 type="button"
                 onClick={handleAddImageUpload}
                 disabled={!!addingSkill}
-                className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50 text-sm"
+                className={`flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 rounded-xl text-slate-500 ${tw.hoverPrimary} disabled:opacity-50 text-sm`}
               >
                 <Image className="w-5 h-5" />
-                {addingSkill === 'image' ? '添加中...' : '图像上传'}
+                {addingSkill === 'image' ? texts.common.adding : texts.lawyer.twin.imageUpload}
               </button>
             )}
             {!hasDocUpload && (
@@ -385,10 +386,10 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
                 type="button"
                 onClick={handleAddDocUpload}
                 disabled={!!addingSkill}
-                className="flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50 text-sm"
+                className={`flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 rounded-xl text-slate-500 ${tw.hoverPrimary} disabled:opacity-50 text-sm`}
               >
                 <FileTextIcon className="w-5 h-5" />
-                {addingSkill === 'doc' ? '添加中...' : '文档上传'}
+                {addingSkill === 'doc' ? texts.common.adding : texts.lawyer.twin.docUpload}
               </button>
             )}
           </div>
@@ -407,23 +408,23 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
           <button
             onClick={() => handleSave('draft')}
             disabled={saving || publishing}
-            className="flex-1 py-4 border-2 border-gray-200 text-gray-700 rounded-2xl font-bold hover:bg-gray-50 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            className={`flex-1 py-4 ${tw.btnSecondary} rounded-2xl font-bold disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
           >
             <FileEdit className="w-5 h-5" />
-            {saving ? '保存中...' : '存为草稿'}
+            {saving ? texts.common.saving : texts.lawyer.twin.saveDraft}
           </button>
           <button
             onClick={() => handleSave('active')}
             disabled={saving || publishing}
-            className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            className={`flex-1 py-4 ${tw.btnPrimary} rounded-2xl font-bold shadow-lg ${tw.btnShadow} disabled:opacity-50 transition-colors flex items-center justify-center gap-2`}
           >
             <Globe className="w-5 h-5" />
-            {publishing ? '发布中...' : currentStatus === 'active' ? '保存并发布' : '发布'}
+            {publishing ? texts.common.publishing : currentStatus === 'active' ? texts.lawyer.twin.saveAndPublish : texts.lawyer.twin.publish}
           </button>
         </div>
         {currentStatus === 'draft' && (
-          <p className="text-center text-xs text-gray-400">
-            草稿状态下，个人用户无法在发现页面看到您的数字分身
+          <p className="text-center text-xs text-slate-400">
+            {texts.lawyer.twin.draftHint}
           </p>
         )}
       </div>

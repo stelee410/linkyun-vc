@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Scale, Smartphone, Lock, ShieldCheck, ChevronDown, Mail, User, KeyRound, LogOut, ShieldX } from 'lucide-react';
+import { TrendingUp, Smartphone, Lock, ShieldCheck, ChevronDown, Mail, User, KeyRound, LogOut, ShieldX } from 'lucide-react';
 import { Role } from '../types';
 import { cn } from '../lib/utils';
 import { login, register } from '../services/auth';
 import { setAuth, clearAuth, setWorkspace } from '../lib/authStorage';
 import { isApiError } from '../types/auth';
-import { WORKSPACE_CODE, WORKSPACE_JOIN_CODE } from '../config/api';
+import { WORKSPACE_CODE, WORKSPACE_JOIN_CODE, REGISTER_INVITATION_CODE } from '../config/api';
 import { getUserWorkspaces, joinWorkspace, switchWorkspace } from '../services/workspace';
+import { texts, tw } from '../themes';
 
 type AccessDeniedInfo = {
   role: Role;
@@ -22,15 +23,15 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [invitationCode, setInvitationCode] = useState('legalwise');
+  const [invitationCode, setInvitationCode] = useState(REGISTER_INVITATION_CODE ?? '');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [accessDenied, setAccessDenied] = useState<AccessDeniedInfo>(null);
 
   const roles = [
-    { id: 'individual', title: '个人用户', accent: 'bg-blue-600' },
-    { id: 'lawyer', title: '律师端', accent: 'bg-emerald-600' },
-    { id: 'judiciary', title: '司法端', accent: 'bg-stone-600' }
+    { id: texts.roles.individual.id, title: texts.roles.individual.title, accent: tw.roleAccentIndividual },
+    { id: texts.roles.lawyer.id, title: texts.roles.lawyer.title, accent: tw.roleAccentLawyer },
+    { id: texts.roles.judiciary.id, title: texts.roles.judiciary.title, accent: tw.roleAccentJudiciary }
   ];
 
   const checkRolePermission = async (targetRole: Role): Promise<boolean> => {
@@ -108,7 +109,7 @@ export default function Login() {
       if (!hasPermission) {
         setAccessDenied({
           role: selectedRole,
-          message: '您暂时还没有律师端的访问权限，请联系管理员开通。',
+          message: texts.login.accessDeniedMsg,
         });
         return;
       }
@@ -168,8 +169,8 @@ export default function Login() {
 
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-emerald-600 to-stone-600" />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className={`absolute top-0 left-0 w-full h-1 ${tw.topGradient}`} />
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-red-50 rounded-full blur-3xl opacity-50" />
         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-50 rounded-full blur-3xl opacity-50" />
 
@@ -186,7 +187,7 @@ export default function Login() {
             >
               <ShieldX className="w-8 h-8" />
             </motion.div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">访问受限</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">{texts.login.accessDenied}</h1>
           </div>
 
           <motion.div
@@ -205,13 +206,13 @@ export default function Login() {
               className="w-full py-4 rounded-2xl bg-gray-900 text-white font-bold shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
             >
               <LogOut className="w-5 h-5" />
-              返回登录
+              {texts.login.goLogin}
             </button>
           </motion.div>
 
-          <p className="text-center text-xs text-gray-400 mt-12">
-            © 2026 律小乖 LegalWise AI. 守护您的法律权益。<br />
-            京ICP备20260001号-1
+          <p className="text-center text-xs text-slate-400 mt-12">
+            {texts.brand.copyright}<br />
+            {texts.brand.icp}
           </p>
         </motion.div>
       </div>
@@ -219,10 +220,10 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-emerald-600 to-stone-600" />
-      <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50" />
-      <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-50" />
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      <div className={`absolute top-0 left-0 w-full h-1 ${tw.topGradient}`} />
+      <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50" />
+      <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-slate-100 rounded-full blur-3xl opacity-50" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -233,23 +234,23 @@ export default function Login() {
           <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
-            className="inline-flex items-center justify-center w-16 h-16 bg-gray-900 rounded-2xl text-white mb-4 shadow-xl"
+            className={`inline-flex items-center justify-center w-16 h-16 ${tw.logoBg} rounded-2xl text-white mb-4 shadow-xl`}
           >
-            <Scale className="w-8 h-8" />
+            <TrendingUp className="w-8 h-8" />
           </motion.div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">律小乖</h1>
-          <p className="text-gray-500 mt-2">专业的法律AI智能平台</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">{texts.brand.name}</h1>
+          <p className="text-slate-500 mt-2">{texts.brand.description}</p>
         </div>
 
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl border border-gray-100 p-8 shadow-xl shadow-gray-100/50"
+          className="bg-white rounded-3xl border border-slate-100 p-8 shadow-xl shadow-slate-100/50"
         >
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900">{isRegisterMode ? '注册账号' : '欢迎登录'}</h2>
+            <h2 className="text-xl font-bold text-gray-900">{isRegisterMode ? texts.login.register : texts.login.welcome}</h2>
             <p className="text-sm text-gray-500">
-              {isRegisterMode ? '填写信息并输入邀请码完成注册' : '请输入您的账号信息并选择登录身份'}
+              {isRegisterMode ? texts.login.registerHint : texts.login.loginHint}
             </p>
           </div>
 
@@ -273,7 +274,7 @@ export default function Login() {
                     placeholder="请输入用户名"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -287,7 +288,7 @@ export default function Login() {
                     placeholder="请输入邮箱"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -302,7 +303,7 @@ export default function Login() {
                     placeholder="请输入密码"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -316,7 +317,7 @@ export default function Login() {
                     placeholder="请输入邀请码"
                     value={invitationCode}
                     onChange={(e) => setInvitationCode(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -332,7 +333,7 @@ export default function Login() {
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <> <ShieldCheck className="w-5 h-5" /> 立即注册 </>
+                  <> <ShieldCheck className="w-5 h-5" /> {texts.login.registerButton} </>
                 )}
               </button>
             </form>
@@ -348,7 +349,7 @@ export default function Login() {
                     placeholder="请输入用户名或邮箱"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -362,7 +363,7 @@ export default function Login() {
                     placeholder="请输入密码"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+                    className={`w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:bg-white transition-all`}
                   />
                 </div>
               </div>
@@ -386,7 +387,7 @@ export default function Login() {
                   <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
                   记住我
                 </label>
-                <button type="button" className="text-blue-600 font-medium hover:underline">忘记密码？</button>
+                <button type="button" className={cn(tw.link, 'font-medium')}>{texts.login.forgotPassword}</button>
               </div>
               <button
                 type="submit"
@@ -400,26 +401,26 @@ export default function Login() {
                 {isSubmitting ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <> <ShieldCheck className="w-5 h-5" /> 立即登录 </>
+                  <> <ShieldCheck className="w-5 h-5" /> {texts.login.loginButton} </>
                 )}
               </button>
             </form>
           )}
 
-          <div className="mt-8 pt-8 border-t border-gray-50 text-center">
-            <p className="text-sm text-gray-500">
+          <div className="mt-8 pt-8 border-t border-slate-50 text-center">
+            <p className="text-sm text-slate-500">
               {isRegisterMode ? (
-                <>已有账号？ <button type="button" onClick={() => { setIsRegisterMode(false); setErrorMessage(''); }} className="text-blue-600 font-bold hover:underline">返回登录</button></>
+                <>{texts.login.hasAccount} <button type="button" onClick={() => { setIsRegisterMode(false); setErrorMessage(''); }} className={cn(tw.link, 'font-bold')}>{texts.login.goLogin}</button></>
               ) : (
-                <>还没有账号？ <button type="button" onClick={() => { setIsRegisterMode(true); setErrorMessage(''); }} className="text-blue-600 font-bold hover:underline">立即注册</button></>
+                <>{texts.login.noAccount} <button type="button" onClick={() => { setIsRegisterMode(true); setErrorMessage(''); }} className={cn(tw.link, 'font-bold')}>{texts.login.goRegister}</button></>
               )}
             </p>
           </div>
         </motion.div>
 
-        <p className="text-center text-xs text-gray-400 mt-12">
-          © 2026 律小乖 LegalWise AI. 守护您的法律权益。<br />
-          京ICP备20260001号-1
+        <p className="text-center text-xs text-slate-400 mt-12">
+          {texts.brand.copyright}<br />
+          {texts.brand.icp}
         </p>
       </motion.div>
     </div>

@@ -12,6 +12,7 @@ import {
   SYSTEM_SERVICE_AGENT_CODE,
 } from '../../config/api';
 import DigitalTwinEditView from './DigitalTwinEditView';
+import { texts, tw } from '../../themes';
 
 /** 需要排除的系统 Agent code 集合 */
 const SYSTEM_AGENT_CODES = new Set(
@@ -71,9 +72,9 @@ export default function DigitalTwinView() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-        <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="mt-3 text-sm">加载中...</p>
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+        <div className={`w-10 h-10 border-2 ${tw.spinnerBorder} border-t-transparent rounded-full animate-spin`} />
+        <p className="mt-3 text-sm">{texts.common.loading}</p>
       </div>
     );
   }
@@ -101,53 +102,53 @@ export default function DigitalTwinView() {
     return (
       <div className="space-y-6">
         <div className="text-center space-y-4 py-8">
-          <div className="w-20 h-20 bg-emerald-100 rounded-full mx-auto flex items-center justify-center text-emerald-600">
+          <div className={`w-20 h-20 ${tw.iconBg} rounded-full mx-auto flex items-center justify-center ${tw.iconColor}`}>
             <UserCircle className="w-10 h-10" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">数字分身</h2>
-          <p className="text-sm text-gray-500 mt-2">让 AI 学习您的办案风格，为您初步接待客户</p>
+          <h2 className="text-xl font-bold text-slate-900">{texts.lawyer.twin.title}</h2>
+          <p className="text-sm text-slate-500 mt-2">{texts.lawyer.twin.description}</p>
         </div>
-        <p className="text-gray-500 text-sm">您还没有建立数字分身</p>
+        <p className="text-slate-500 text-sm">{texts.lawyer.twin.noTwin}</p>
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+          className={`w-full py-4 ${tw.btnPrimary} rounded-2xl font-bold shadow-lg ${tw.btnShadow} transition-colors flex items-center justify-center gap-2`}
         >
           <Plus className="w-5 h-5" />
-          添加你的数字分身
+          {texts.lawyer.twin.addTwin}
         </button>
 
         {showCreate && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-6 w-full max-w-md space-y-4">
-              <h3 className="text-lg font-bold text-gray-900">新建数字分身</h3>
+              <h3 className="text-lg font-bold text-slate-900">{texts.lawyer.twin.createTitle}</h3>
               {createError && <p className="text-sm text-red-600">{createError}</p>}
               <input
                 type="text"
-                placeholder="例如：张三律师"
+                placeholder={texts.lawyer.twin.namePlaceholder}
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
               />
               <textarea
-                placeholder="描述（可选）"
+                placeholder={texts.lawyer.twin.descPlaceholder}
                 value={createDesc}
                 onChange={(e) => setCreateDesc(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus} resize-none`}
               />
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
                 >
-                  取消
+                  {texts.common.cancel}
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50"
+                  className={`flex-1 py-3 ${tw.btnPrimary} rounded-xl font-bold disabled:opacity-50`}
                 >
-                  {creating ? '创建中...' : '创建'}
+                  {creating ? texts.common.creating : texts.common.create}
                 </button>
               </div>
             </div>

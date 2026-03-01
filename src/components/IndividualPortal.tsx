@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, RefreshCw, Scale, Pencil, Sparkles, X, Check, Compass, Wrench, Bot, ChevronRight, Loader2 } from 'lucide-react';
+import { Menu, RefreshCw, TrendingUp, Pencil, Sparkles, X, Check, Compass, Wrench, Bot, ChevronRight, Loader2 } from 'lucide-react';
 import { ChatSession, Message, MessageAttachment } from '../types';
 import {
   getSystemAgentId,
@@ -33,6 +33,7 @@ import {
   WORKSPACE_CODE,
 } from '../config/api';
 import { getUserWorkspaces } from '../services/workspace';
+import { texts, tw } from '../themes';
 
 const useLinkyunChat = !!SYSTEM_AGENT_CODE?.trim();
 
@@ -585,23 +586,23 @@ export default function IndividualPortal() {
     }
   };
 
-  const suggestions = ['如何起诉欠款不还？', '劳动合同解除补偿标准', '房屋租赁纠纷处理'];
+  const suggestions = texts.individual.suggestions;
 
   if (!useLinkyunChat) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen text-center p-8 bg-white">
-        <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-4">
-          <Scale className="w-8 h-8" />
+      <div className="flex flex-col items-center justify-center h-screen text-center p-8 bg-slate-50">
+        <div className={`w-16 h-16 ${tw.iconBg} rounded-2xl flex items-center justify-center ${tw.iconColor} mb-4`}>
+          <TrendingUp className="w-8 h-8" />
         </div>
-        <h3 className="text-lg font-bold text-gray-700 mb-2">系统未配置</h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <h3 className="text-lg font-bold text-slate-700 mb-2">系统未配置</h3>
+        <p className="text-sm text-slate-500 mb-6">
           请在环境变量中设置 VITE_SYSTEM_AGENT_CODE
         </p>
         <button
           onClick={handleLogout}
-          className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+          className="px-6 py-2 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
         >
-          返回登录
+          {texts.login.goLogin}
         </button>
       </div>
     );
@@ -610,13 +611,13 @@ export default function IndividualPortal() {
   const menuItems: MenuItem[] = [
     {
       id: 'discover',
-      label: '发现',
+      label: texts.individual.discover,
       icon: Compass,
       onClick: () => setIsDiscoverOpen(true),
     },
     {
       id: 'tools',
-      label: '工具',
+      label: texts.individual.tools,
       icon: Wrench,
       onClick: () => {},
       disabled: true,
@@ -624,7 +625,7 @@ export default function IndividualPortal() {
   ];
 
   return (
-    <div className="flex h-screen bg-white overflow-hidden">
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       <ChatSidebar
         variant="individual"
         sessions={sessions}
@@ -640,30 +641,30 @@ export default function IndividualPortal() {
       />
 
       <main className="flex-1 flex flex-col relative min-w-0">
-        <header className="h-16 border-b border-gray-100 flex items-center px-4 gap-2 bg-white/80 backdrop-blur-md sticky top-0 z-30">
+        <header className="h-16 border-b border-slate-100 flex items-center px-4 gap-2 bg-white/80 backdrop-blur-md sticky top-0 z-30">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-lg md:hidden"
+            className="p-2 hover:bg-slate-100 rounded-lg md:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
           <div className="flex-1 flex items-center gap-2 min-w-0">
-            <h1 className="font-semibold text-gray-900 truncate">
-              {activeSession?.title || '法律AI助手'}
+            <h1 className="font-semibold text-slate-900 truncate">
+              {activeSession?.title || texts.individual.headerTitle}
             </h1>
             {activeSession && (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
                   onClick={handleRegenerateTitle}
                   disabled={isRegeneratingTitle}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                  className={`p-1.5 text-slate-400 ${tw.hoverPrimary} rounded-lg transition-colors disabled:opacity-50`}
                   title="重新生成标题"
                 >
                   <Sparkles className={`w-4 h-4 ${isRegeneratingTitle ? 'animate-pulse' : ''}`} />
                 </button>
                 <button
                   onClick={openEditTitleModal}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className={`p-1.5 text-slate-400 ${tw.hoverPrimary} rounded-lg transition-colors`}
                   title="编辑标题"
                 >
                   <Pencil className="w-4 h-4" />
@@ -677,8 +678,8 @@ export default function IndividualPortal() {
           {!activeSession || activeSession.messages.length === 0 ? (
             <ChatEmptyState
               variant="individual"
-              title="您好，我是您的法律助手"
-              description="您可以向我咨询法律问题、合同审查或法律程序相关建议。"
+              title={texts.individual.emptyTitle}
+              description={texts.individual.emptyDescription}
               suggestions={suggestions}
               onSuggestionClick={setInput}
             />
@@ -689,22 +690,22 @@ export default function IndividualPortal() {
           )}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-50 p-4 rounded-2xl rounded-tl-none border border-gray-100 flex gap-1">
-                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce" />
-                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.2s]" />
-                <span className="w-1.5 h-1.5 bg-gray-300 rounded-full animate-bounce [animation-delay:0.4s]" />
+              <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none border border-slate-100 flex gap-1">
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce [animation-delay:0.4s]" />
               </div>
             </div>
           )}
           {sessionLoadError === activeSessionId && activeSession && (
             <div className="flex flex-col items-center gap-3 py-6">
-              <p className="text-gray-500 text-sm">系统正在忙，请稍后刷新</p>
+              <p className="text-slate-500 text-sm">{texts.individual.systemBusy}</p>
               <button
                 onClick={() => refreshSessionMessages(activeSessionId!)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors"
+                className={`inline-flex items-center gap-2 px-4 py-2 ${tw.iconBg} ${tw.iconColor} rounded-xl text-sm font-medium ${tw.hoverAccent} transition-colors`}
               >
                 <RefreshCw className="w-4 h-4" />
-                刷新
+                {texts.individual.refresh}
               </button>
             </div>
           )}
@@ -717,11 +718,11 @@ export default function IndividualPortal() {
           onChange={setInput}
           onSend={handleSend}
           disabled={isLoading}
-          placeholder="描述您的法律问题"
+          placeholder={texts.individual.inputPlaceholder}
           pendingFiles={pendingFiles}
           onAddFiles={addFiles}
           onRemoveFile={removePendingFile}
-          hint="支持图片（jpg/png/gif/webp）与文档（pdf/doc/docx/txt/md）。AI 助手仅供参考，不构成正式法律意见。"
+          hint={texts.individual.inputHint}
         />
       </main>
 
@@ -742,10 +743,10 @@ export default function IndividualPortal() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">编辑标题</h2>
+                <h2 className="text-lg font-semibold text-slate-900">{texts.individual.editTitle}</h2>
                 <button
                   onClick={() => setIsEditingTitle(false)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -755,23 +756,23 @@ export default function IndividualPortal() {
                 value={editTitleValue}
                 onChange={(e) => setEditTitleValue(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveTitle()}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus} focus:border-transparent text-slate-900`}
                 placeholder="输入新标题"
                 autoFocus
               />
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => setIsEditingTitle(false)}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                 >
-                  取消
+                  {texts.individual.cancel}
                 </button>
                 <button
                   onClick={handleSaveTitle}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                  className={`px-4 py-2 ${tw.btnPrimary} rounded-xl transition-colors inline-flex items-center gap-2`}
                 >
                   <Check className="w-4 h-4" />
-                  保存
+                  {texts.individual.save}
                 </button>
               </div>
             </motion.div>
@@ -792,34 +793,34 @@ export default function IndividualPortal() {
               className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between p-6 border-b border-slate-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <Compass className="w-5 h-5 text-blue-600" />
+                  <div className={`w-10 h-10 ${tw.iconBg} rounded-xl flex items-center justify-center`}>
+                    <Compass className={`w-5 h-5 ${tw.iconColor}`} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">发现律师数字人</h2>
-                    <p className="text-sm text-gray-500">选择专业领域的 AI 律师助手</p>
+                    <h2 className="text-lg font-semibold text-slate-900">{texts.individual.discoverTitle}</h2>
+                    <p className="text-sm text-slate-500">{texts.individual.discoverDescription}</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsDiscoverOpen(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="p-6 overflow-y-auto max-h-[calc(80vh-100px)]">
                 {loadingAgents ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                    <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                    <Loader2 className={`w-8 h-8 animate-spin ${tw.spinnerColor}`} />
                     <p className="mt-3 text-sm">加载中...</p>
                   </div>
                 ) : lawyerAgents.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                     <Bot className="w-12 h-12 mb-3" />
-                    <p className="text-sm">暂无律师数字人</p>
-                    <p className="text-xs mt-1">律师创建数字分身后将显示在这里</p>
+                    <p className="text-sm">{texts.individual.noAdvisors}</p>
+                    <p className="text-xs mt-1">{texts.individual.noAdvisorsHint}</p>
                   </div>
                 ) : (
                   <div className="grid gap-3">
@@ -831,25 +832,25 @@ export default function IndividualPortal() {
                           key={agent.id}
                           onClick={() => startChatWithLawyerAgent(agent)}
                           disabled={!!startingChatWithAgent}
-                          className="flex items-center gap-4 p-4 bg-gray-50 hover:bg-blue-50 rounded-xl transition-colors text-left group disabled:opacity-60 disabled:cursor-not-allowed"
+                          className={`flex items-center gap-4 p-4 bg-slate-50 ${tw.hoverAccent} rounded-xl transition-colors text-left group disabled:opacity-60 disabled:cursor-not-allowed`}
                         >
                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-2xl shadow-sm overflow-hidden">
                             {avatarUrl ? (
                               <img src={avatarUrl} alt={agent.name} className="w-full h-full object-cover" />
                             ) : (
-                              <Bot className="w-6 h-6 text-blue-500" />
+                              <Bot className={`w-6 h-6 ${tw.spinnerColor}`} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
-                              {agent.name || '律师助手'}
+                            <h3 className={`font-medium text-slate-900 group-hover:${tw.iconColor.replace('text-', '')} transition-colors`}>
+                              {agent.name || texts.individual.advisorDefault}
                             </h3>
-                            <p className="text-sm text-gray-500 truncate">{agent.description || '专业法律咨询服务'}</p>
+                            <p className="text-sm text-slate-500 truncate">{agent.description || texts.individual.advisorDescDefault}</p>
                           </div>
                           {isStarting ? (
-                            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                            <Loader2 className={`w-5 h-5 ${tw.spinnerColor} animate-spin`} />
                           ) : (
-                            <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                            <ChevronRight className={`w-5 h-5 text-slate-300 group-hover:${tw.iconColor.replace('text-', '')} transition-colors`} />
                           )}
                         </button>
                       );
@@ -857,7 +858,7 @@ export default function IndividualPortal() {
                   </div>
                 )}
                 {!loadingAgents && lawyerAgents.length > 0 && (
-                  <p className="text-center text-sm text-gray-400 mt-6">点击律师数字人开始咨询</p>
+                  <p className="text-center text-sm text-slate-400 mt-6">{texts.individual.clickToChat}</p>
                 )}
               </div>
             </motion.div>

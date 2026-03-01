@@ -28,6 +28,7 @@ import {
   type KnowledgeBaseInfo,
   type DocumentInfo,
 } from '../../services/knowledge';
+import { texts, tw } from '../../themes';
 
 export default function KnowledgeBaseView() {
   const [kbList, setKbList] = useState<KnowledgeBaseInfo[]>([]);
@@ -228,32 +229,32 @@ export default function KnowledgeBaseView() {
           <button
             onClick={refreshDocuments}
             disabled={docsLoading}
-            className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+            className={`p-2 text-slate-500 ${tw.hoverPrimary} rounded-xl transition-colors`}
             title="刷新"
           >
             <RefreshCw className={`w-5 h-5 ${docsLoading ? 'animate-spin' : ''}`} />
           </button>
           <button
             onClick={() => setShowAddUrl(true)}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50"
+            className={`flex items-center gap-2 px-3 py-2 ${tw.btnSecondary} rounded-xl text-sm font-bold`}
           >
             <Link className="w-4 h-4" />
-            添加链接
+            {texts.lawyer.knowledge.addLink}
           </button>
           <button
             onClick={() => setShowAddText(true)}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-bold hover:bg-gray-50"
+            className={`flex items-center gap-2 px-3 py-2 ${tw.btnSecondary} rounded-xl text-sm font-bold`}
           >
             <Type className="w-4 h-4" />
-            添加文本
+            {texts.lawyer.knowledge.addText}
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
+            className={`flex items-center gap-2 px-4 py-2 ${tw.btnPrimary} rounded-xl text-sm font-bold disabled:opacity-50`}
           >
             <Upload className="w-4 h-4" />
-            {uploading ? '上传中...' : '上传文档'}
+            {uploading ? texts.common.uploading : texts.lawyer.knowledge.uploadDoc}
           </button>
           <input
             ref={fileInputRef}
@@ -268,17 +269,17 @@ export default function KnowledgeBaseView() {
 
         {docsLoading ? (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+            <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${tw.spinnerBorder}`} />
           </div>
         ) : documents.length === 0 ? (
           <div className="text-center py-12">
-            <Database className="w-12 h-12 mx-auto text-gray-300 mb-4" />
-            <p className="text-gray-500">暂无文档</p>
+            <Database className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-500">{texts.lawyer.knowledge.noDocs}</p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="mt-4 px-6 py-3 bg-emerald-100 text-emerald-700 rounded-xl font-bold hover:bg-emerald-200"
+              className={`mt-4 px-6 py-3 ${tw.iconBg} ${tw.iconColor} rounded-xl font-bold ${tw.hoverAccent}`}
             >
-              上传第一个文档
+              {texts.lawyer.knowledge.uploadFirst}
             </button>
           </div>
         ) : (
@@ -288,18 +289,18 @@ export default function KnowledgeBaseView() {
               return (
                 <div
                   key={doc.id}
-                  className="bg-white p-4 rounded-2xl border border-gray-100 hover:shadow-sm transition-all"
+                  className="bg-white p-4 rounded-2xl border border-slate-100 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">
+                    <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
                       <FileTextIcon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">{doc.name || doc.filename}</h4>
+                      <h4 className="font-medium text-slate-900 truncate">{doc.name || doc.filename}</h4>
                     </div>
                     <button
                       onClick={() => handleDeleteDoc(doc)}
-                      className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                      className="p-2 text-slate-300 hover:text-red-500 transition-colors"
                       title="删除"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -332,39 +333,39 @@ export default function KnowledgeBaseView() {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-6 w-full max-w-md space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">添加链接</h3>
-                <button onClick={() => setShowAddUrl(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-500" />
+                <h3 className="text-lg font-bold text-slate-900">{texts.lawyer.knowledge.addLinkTitle}</h3>
+                <button onClick={() => setShowAddUrl(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+                  <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
               <input
                 type="text"
-                placeholder="文档名称（可选）"
+                placeholder={texts.lawyer.knowledge.docNamePlaceholder}
                 value={urlName}
                 onChange={(e) => setUrlName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
               />
               <input
                 type="url"
-                placeholder="https://example.com/document.pdf"
+                placeholder={texts.lawyer.knowledge.linkPlaceholder}
                 value={urlValue}
                 onChange={(e) => setUrlValue(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
               />
-              <p className="text-xs text-gray-500">支持网页、PDF 等公开可访问的链接</p>
+              <p className="text-xs text-slate-500">{texts.lawyer.knowledge.linkHint}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAddUrl(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
                 >
-                  取消
+                  {texts.common.cancel}
                 </button>
                 <button
                   onClick={handleAddUrl}
                   disabled={!urlValue.trim() || addingUrl}
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50"
+                  className={`flex-1 py-3 ${tw.btnPrimary} rounded-xl font-bold disabled:opacity-50`}
                 >
-                  {addingUrl ? '添加中...' : '添加'}
+                  {addingUrl ? texts.common.adding : texts.common.add}
                 </button>
               </div>
             </div>
@@ -375,38 +376,38 @@ export default function KnowledgeBaseView() {
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-3xl p-6 w-full max-w-lg space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">添加纯文本</h3>
-                <button onClick={() => setShowAddText(false)} className="p-1 hover:bg-gray-100 rounded-lg">
-                  <X className="w-5 h-5 text-gray-500" />
+                <h3 className="text-lg font-bold text-slate-900">{texts.lawyer.knowledge.addTextTitle}</h3>
+                <button onClick={() => setShowAddText(false)} className="p-1 hover:bg-slate-100 rounded-lg">
+                  <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
               <input
                 type="text"
-                placeholder="文档名称"
+                placeholder={texts.lawyer.knowledge.textNamePlaceholder}
                 value={textName}
                 onChange={(e) => setTextName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
               />
               <textarea
-                placeholder="输入文本内容..."
+                placeholder={texts.lawyer.knowledge.textContentPlaceholder}
                 value={textContent}
                 onChange={(e) => setTextContent(e.target.value)}
                 rows={8}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+                className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus} resize-none`}
               />
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAddText(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                  className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
                 >
-                  取消
+                  {texts.common.cancel}
                 </button>
                 <button
                   onClick={handleAddText}
                   disabled={!textName.trim() || !textContent.trim() || addingText}
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50"
+                  className={`flex-1 py-3 ${tw.btnPrimary} rounded-xl font-bold disabled:opacity-50`}
                 >
-                  {addingText ? '添加中...' : '添加'}
+                  {addingText ? texts.common.adding : texts.common.add}
                 </button>
               </div>
             </div>
@@ -419,24 +420,24 @@ export default function KnowledgeBaseView() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">知识库管理</h2>
+        <h2 className="text-xl font-bold text-slate-900">{texts.lawyer.knowledge.title}</h2>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1 text-emerald-600 text-sm font-bold"
+          className={`flex items-center gap-1 ${tw.iconColor} text-sm font-bold`}
         >
           <Plus className="w-4 h-4" />
-          新建库
+          {texts.lawyer.knowledge.newKb}
         </button>
       </div>
 
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
         <input
           type="text"
-          placeholder="搜索知识库..."
+          placeholder={texts.lawyer.knowledge.searchPlaceholder}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+          className={`w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 ${tw.inputFocus} transition-all`}
         />
       </div>
 
@@ -444,20 +445,20 @@ export default function KnowledgeBaseView() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${tw.spinnerBorder}`} />
         </div>
       ) : filteredKb.length === 0 ? (
         <div className="text-center py-12">
-          <Database className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-          <p className="text-gray-500 mb-4">
-            {searchTerm ? '未找到匹配的知识库' : '暂无知识库'}
+          <Database className="w-16 h-16 mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500 mb-4">
+            {searchTerm ? texts.lawyer.knowledge.noKbSearch : texts.lawyer.knowledge.noKb}
           </p>
           {!searchTerm && (
             <button
               onClick={() => setShowCreate(true)}
-              className="px-6 py-3 bg-emerald-100 text-emerald-700 rounded-xl font-bold hover:bg-emerald-200"
+              className={`px-6 py-3 ${tw.iconBg} ${tw.iconColor} rounded-xl font-bold ${tw.hoverAccent}`}
             >
-              创建第一个知识库
+              {texts.lawyer.knowledge.createFirst}
             </button>
           )}
         </div>
@@ -467,14 +468,14 @@ export default function KnowledgeBaseView() {
             <div
               key={kb.id}
               onClick={() => openKbDetail(kb)}
-              className="bg-white p-5 rounded-3xl border border-gray-100 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer group"
             >
-              <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+              <div className={`w-12 h-12 ${tw.iconBg} rounded-2xl flex items-center justify-center ${tw.iconColor}`}>
                 <Database className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-gray-900">{kb.name || '未命名知识库'}</h4>
-                <p className="text-xs text-gray-400 mt-1">
+                <h4 className="font-bold text-slate-900">{kb.name || '未命名项目库'}</h4>
+                <p className="text-xs text-slate-400 mt-1">
                   {kb.document_count ?? 0} 个文档
                   {kb.total_size ? ` · ${formatFileSize(kb.total_size)}` : ''}
                 </p>
@@ -484,12 +485,12 @@ export default function KnowledgeBaseView() {
                   e.stopPropagation();
                   handleDelete(kb);
                 }}
-                className="p-2 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                 title="删除"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
-              <ChevronRight className="w-5 h-5 text-gray-300" />
+              <ChevronRight className="w-5 h-5 text-slate-300" />
             </div>
           ))}
         </div>
@@ -498,34 +499,34 @@ export default function KnowledgeBaseView() {
       {showCreate && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-md space-y-4">
-            <h3 className="text-lg font-bold text-gray-900">新建知识库</h3>
+            <h3 className="text-lg font-bold text-slate-900">{texts.lawyer.knowledge.createTitle}</h3>
             <input
               type="text"
-              placeholder="知识库名称"
+              placeholder={texts.lawyer.knowledge.namePlaceholder}
               value={createName}
               onChange={(e) => setCreateName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus}`}
             />
             <textarea
-              placeholder="描述（可选）"
+              placeholder={texts.lawyer.knowledge.descPlaceholder}
               value={createDesc}
               onChange={(e) => setCreateDesc(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none"
+              className={`w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 ${tw.inputFocus} resize-none`}
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCreate(false)}
-                className="flex-1 py-3 border border-gray-200 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
+                className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50"
               >
-                取消
+                {texts.common.cancel}
               </button>
               <button
                 onClick={handleCreate}
                 disabled={!createName.trim() || creating}
-                className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50"
+                className={`flex-1 py-3 ${tw.btnPrimary} rounded-xl font-bold disabled:opacity-50`}
               >
-                {creating ? '创建中...' : '创建'}
+                {creating ? texts.common.creating : texts.common.create}
               </button>
             </div>
           </div>

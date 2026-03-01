@@ -3,19 +3,20 @@ import { Send, ImagePlus, FileText, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IMAGE_ACCEPT, DOC_ACCEPT } from '../../hooks/useFileUpload';
 import type { PendingFile } from '../../types/chat';
+import { tw } from '../../themes';
 
 type Variant = 'individual' | 'lawyer';
 
 const variantStyles = {
   individual: {
-    focus: 'focus:ring-blue-500/20 focus:border-blue-500',
-    sendActive: 'bg-blue-600 shadow-lg shadow-blue-200 hover:bg-blue-700',
-    sendDisabled: 'bg-gray-200 text-gray-400 cursor-not-allowed',
+    focus: tw.inputFocus,
+    sendActive: tw.sendActive,
+    sendDisabled: tw.sendDisabled,
   },
   lawyer: {
-    focus: 'focus:ring-emerald-500/20 focus:border-emerald-500',
-    sendActive: 'bg-emerald-600 shadow-lg shadow-emerald-200 hover:bg-emerald-700',
-    sendDisabled: 'bg-gray-200 text-gray-400 cursor-not-allowed',
+    focus: tw.inputFocus,
+    sendActive: tw.sendActive,
+    sendDisabled: tw.sendDisabled,
   },
 };
 
@@ -59,7 +60,7 @@ export default function ChatInput({
   };
 
   return (
-    <div className="p-4 bg-white border-t border-gray-100">
+    <div className="p-4 bg-white border-t border-slate-100">
       <div className="max-w-3xl mx-auto">
         {pendingFiles.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
@@ -68,13 +69,13 @@ export default function ChatInput({
                 key={i}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-xl border px-2 py-1.5 text-sm',
-                  p.error ? 'border-red-200 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50 text-gray-700'
+                  p.error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'
                 )}
               >
                 {p.type === 'image' && p.previewUrl ? (
                   <img src={p.previewUrl} alt="" className="w-10 h-10 rounded object-cover shrink-0" />
                 ) : (
-                  <FileText className="w-5 h-5 shrink-0 text-gray-500" />
+                  <FileText className="w-5 h-5 shrink-0 text-slate-500" />
                 )}
                 <span className="max-w-[120px] truncate">{p.file.name}</span>
                 {p.error ? (
@@ -99,8 +100,8 @@ export default function ChatInput({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={cn(
-              'w-full p-4 pr-24 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 transition-all resize-none min-h-[60px] max-h-[200px]',
-              variant === 'individual' ? 'focus:ring-blue-500/20 focus:border-blue-500' : 'focus:ring-emerald-500/20 focus:border-emerald-500'
+              'w-full p-4 pr-24 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 transition-all resize-none min-h-[60px] max-h-[200px]',
+              variantStyles[variant].focus
             )}
             rows={1}
           />
@@ -124,7 +125,7 @@ export default function ChatInput({
             <button
               type="button"
               onClick={() => imageInputRef.current?.click()}
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
               title="上传图片"
             >
               <ImagePlus className="w-5 h-5" />
@@ -132,7 +133,7 @@ export default function ChatInput({
             <button
               type="button"
               onClick={() => docInputRef.current?.click()}
-              className="p-2 rounded-xl text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+              className="p-2 rounded-xl text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
               title="上传文档"
             >
               <FileText className="w-5 h-5" />
@@ -151,7 +152,7 @@ export default function ChatInput({
           </div>
         </div>
       </div>
-      <p className="text-[10px] text-center text-gray-400 mt-2">{hint}</p>
+      <p className="text-[10px] text-center text-slate-400 mt-2">{hint}</p>
     </div>
   );
 }
