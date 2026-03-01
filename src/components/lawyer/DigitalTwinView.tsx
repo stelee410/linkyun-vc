@@ -6,6 +6,7 @@ import {
   nameToCode,
   type AgentInfo,
 } from '../../services/agents';
+import { getAgentByCode } from '../../services/chat';
 import {
   SYSTEM_AGENT_CODE,
   SYSTEM_ASSISTANT_AGENT_CODE,
@@ -14,19 +15,41 @@ import {
 import DigitalTwinEditView from './DigitalTwinEditView';
 import { texts, tw } from '../../themes';
 
-/** 需要排除的系统 Agent code 集合 */
-const SYSTEM_AGENT_CODES = new Set(
-  [SYSTEM_AGENT_CODE, SYSTEM_ASSISTANT_AGENT_CODE, SYSTEM_SERVICE_AGENT_CODE]
-    .filter((c): c is string => !!c?.trim())
-    .map((c) => c.trim().toLowerCase())
-);
+/** 需要排除的系统 Agent code 列表 */
+const SYSTEM_AGENT_CODE_LIST = [
+  SYSTEM_AGENT_CODE,
+  SYSTEM_ASSISTANT_AGENT_CODE,
+  SYSTEM_SERVICE_AGENT_CODE,
+].filter((c): c is string => !!c?.trim());
 
-/** 过滤掉系统预设 Agent */
-function filterSystemAgents(agents: AgentInfo[]): AgentInfo[] {
-  if (SYSTEM_AGENT_CODES.size === 0) return agents;
+/** 获取系统 Agent 的 ID 集合 */
+async function getSystemAgentIds(): Promise<Set<string>> {
+  const ids = new Set<string>();
+  await Promise.all(
+    SYSTEM_AGENT_CODE_LIST.map(async (code) => {
+      try {
+        const agent = await getAgentByCode(code.trim());
+        if (agent?.id) ids.add(String(agent.id));
+      } catch {
+        // 忽略获取失败的 agent
+      }
+    })
+  );
+  return ids;
+}
+
+/** 过滤掉系统预设 Agent（支持 code 和 id 双重匹配） */
+function filterSystemAgents(agents: AgentInfo[], systemIds: Set<string>): AgentInfo[] {
+  const systemCodes = new Set(SYSTEM_AGENT_CODE_LIST.map((c) => c.trim().toLowerCase()));
+  if (systemCodes.size === 0 && systemIds.size === 0) return agents;
+  
   return agents.filter((a) => {
+    // 通过 ID 过滤
+    if (systemIds.has(String(a.id))) return false;
+    // 通过 code 过滤
     const code = a.code?.trim().toLowerCase();
-    return !code || !SYSTEM_AGENT_CODES.has(code);
+    if (code && systemCodes.has(code)) return false;
+    return true;
   });
 }
 
@@ -41,13 +64,14 @@ export default function DigitalTwinView() {
 
   // 加载草稿和已发布的数字分身
   const loadAgents = React.useCallback(async () => {
-    const [draftList, activeList] = await Promise.all([
+    const [draftList, activeList, systemIds] = await Promise.all([
       listAgents({ status: 'draft', limit: 100 }),
       listAgents({ status: 'active', limit: 100 }),
+      getSystemAgentIds(),
     ]);
     const combined = [...draftList, ...activeList];
     const uniqueById = Array.from(new Map(combined.map((a) => [a.id, a])).values());
-    return filterSystemAgents(uniqueById);
+    return filterSystemAgents(uniqueById, systemIds);
   }, []);
 
   useEffect(() => {
