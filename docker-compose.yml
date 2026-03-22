@@ -6,16 +6,16 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=https://linkyun.co
-        - VITE_WORKSPACE_CODE=vc
-        - VITE_WORKSPACE_JOIN_CODE=thisiswhatwecall
-        - VITE_SYSTEM_SERVICE_AGENT_CODE=vc-system
-        - VITE_SYSTEM_AGENT_CODE=vc-vc
-        - VITE_SYSTEM_ASSISTANT_AGENT_CODE=vc-assistant
-        - VITE_SITE_THEME=vc
+        - VITE_API_BASE_URL=https://api.linkyun.co
+        - VITE_WORKSPACE_CODE=legalwise
+        - VITE_WORKSPACE_JOIN_CODE=ox99234
+        - VITE_SYSTEM_SERVICE_AGENT_CODE=legalwise-system
+        - VITE_SYSTEM_AGENT_CODE=legalwise
+        - VITE_SYSTEM_ASSISTANT_AGENT_CODE=legalwise-assistant
+        - VITE_SITE_THEME=legalwise
         - VITE_REGISTER_INVITATION_CODE=legalwise
-        - VITE_TITLE=凌云智�本
-    container_name: vc-frontend
+        - VITE_TITLE=法制通法律AI智能平台
+    container_name: legalwise-frontend
     ports:
-      - "81:80"
+      - "3000:80"
     restart: unless-stopped
