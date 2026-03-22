@@ -24,6 +24,12 @@ export const SYSTEM_SERVICE_AGENT_CODE = import.meta.env.VITE_SYSTEM_SERVICE_AGE
 /** 注册邀请码 */
 export const REGISTER_INVITATION_CODE = import.meta.env.VITE_REGISTER_INVITATION_CODE as string | undefined;
 
+/** 豆包大模型录音文件极速版识别 API - APP ID */
+export const DOUBAO_ASR_APP_ID = import.meta.env.VITE_DOUBAO_ASR_APP_ID as string | undefined;
+
+/** 豆包大模型录音文件极速版识别 API - Access Token */
+export const DOUBAO_ASR_ACCESS_TOKEN = import.meta.env.VITE_DOUBAO_ASR_ACCESS_TOKEN as string | undefined;
+
 export function getApiUrl(path: string): string {
   const p = path.startsWith('/') ? path : `/${path}`;
   return `${API_BASE_URL}${p}`;

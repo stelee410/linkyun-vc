@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bot, Menu, RefreshCw, Pencil, Sparkles, X, Check } from 'lucide-react';
-import { SYSTEM_ASSISTANT_AGENT_CODE } from '../../config/api';
+import { SYSTEM_ASSISTANT_AGENT_CODE, DOUBAO_ASR_APP_ID, DOUBAO_ASR_ACCESS_TOKEN } from '../../config/api';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 import {
   getAgentByCode,
   generateSessionTitle,
@@ -37,6 +38,16 @@ export default function AssistantView() {
   const messaging = useGroupChatMessaging({ sessions, setSessions, useLinkyunChat });
 
   const { pendingFiles, addFiles, removePendingFile, clearPendingFiles } = useFileUpload();
+
+  const voice = useVoiceInput({
+    appId: DOUBAO_ASR_APP_ID,
+    accessToken: DOUBAO_ASR_ACCESS_TOKEN,
+    contextText: input,
+    onFinalResult: (text) => {
+      handleSend(input ? `${input} ${text}` : text);
+    },
+    onError: (msg) => console.error('[ASR]', msg),
+  });
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
@@ -181,12 +192,12 @@ export default function AssistantView() {
     }
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     const filesToSend = pendingFiles.filter((p) => !p.error);
     if ((!text && filesToSend.length === 0) || messaging.isLoading || !useLinkyunChat) return;
 
-    setInput('');
+    if (!overrideText) setInput('');
     clearPendingFiles();
 
     let sessionId = activeSessionId;
@@ -336,6 +347,10 @@ export default function AssistantView() {
           onAddFiles={addFiles}
           onRemoveFile={removePendingFile}
           hint={texts.lawyer.assistant.inputHint}
+          voiceState={voice.state}
+          onVoiceStart={voice.startRecording}
+          onVoiceStop={voice.stopRecording}
+          onVoiceCancel={voice.cancelRecording}
         />
       </main>
 

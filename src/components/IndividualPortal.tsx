@@ -27,7 +27,10 @@ import {
   SYSTEM_SERVICE_AGENT_CODE,
   API_BASE_URL,
   WORKSPACE_CODE,
+  DOUBAO_ASR_APP_ID,
+  DOUBAO_ASR_ACCESS_TOKEN,
 } from '../config/api';
+import { useVoiceInput } from '../hooks/useVoiceInput';
 import { getUserWorkspaces } from '../services/workspace';
 import { texts, tw } from '../themes';
 import { useGroupChatMessaging, fetchSessionMessages } from '../hooks/useGroupChatMessaging';
@@ -82,6 +85,16 @@ export default function IndividualPortal() {
   const messaging = useGroupChatMessaging({ sessions, setSessions, useLinkyunChat });
 
   const { pendingFiles, addFiles, removePendingFile, clearPendingFiles } = useFileUpload();
+
+  const voice = useVoiceInput({
+    appId: DOUBAO_ASR_APP_ID,
+    accessToken: DOUBAO_ASR_ACCESS_TOKEN,
+    contextText: input,
+    onFinalResult: (text) => {
+      handleSend(input ? `${input} ${text}` : text);
+    },
+    onError: (msg) => console.error('[ASR]', msg),
+  });
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
 
@@ -402,12 +415,12 @@ export default function IndividualPortal() {
     }
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
     const filesToSend = pendingFiles.filter((p) => !p.error);
     if ((!text && filesToSend.length === 0) || messaging.isLoading || !useLinkyunChat) return;
 
-    setInput('');
+    if (!overrideText) setInput('');
     clearPendingFiles();
 
     let sessionId = activeSessionId;
@@ -586,6 +599,10 @@ export default function IndividualPortal() {
           onAddFiles={addFiles}
           onRemoveFile={removePendingFile}
           hint={texts.individual.inputHint}
+          voiceState={voice.state}
+          onVoiceStart={voice.startRecording}
+          onVoiceStop={voice.stopRecording}
+          onVoiceCancel={voice.cancelRecording}
         />
       </main>
 
