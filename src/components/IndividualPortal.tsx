@@ -2,14 +2,11 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, RefreshCw, TrendingUp, Pencil, Sparkles, X, Check, Compass, Wrench, Bot, ChevronRight, Loader2 } from 'lucide-react';
-import { ChatSession, Message, MessageAttachment } from '../types';
+import { ChatSession, Message } from '../types';
 import {
   getSystemAgentId,
   listGroupChats,
   createGroupChat,
-  getGroupChatMessages,
-  sendGroupChatMessage,
-  pollForAssistantResponse,
   deleteGroupChat,
   updateGroupChat,
   type GroupChatInfo,
@@ -17,7 +14,6 @@ import {
 import { generateSessionTitle } from '../services/chat';
 import { ChatSidebar, ChatMessageBubble, ChatEmptyState, ChatInput, type MenuItem } from './chat';
 import { useFileUpload } from '../hooks/useFileUpload';
-import { resolvePendingAttachments } from '../services/files';
 import { clearAuth, getWorkspaceId, setWorkspace } from '../lib/authStorage';
 import {
   listAgents,
@@ -34,6 +30,7 @@ import {
 } from '../config/api';
 import { getUserWorkspaces } from '../services/workspace';
 import { texts, tw } from '../themes';
+import { useGroupChatMessaging, fetchSessionMessages } from '../hooks/useGroupChatMessaging';
 
 const useLinkyunChat = !!SYSTEM_AGENT_CODE?.trim();
 
@@ -66,10 +63,8 @@ export default function IndividualPortal() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(urlSessionId || null);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
-  const [sessionLoadError, setSessionLoadError] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
   const [isRegeneratingTitle, setIsRegeneratingTitle] = useState(false);
@@ -80,6 +75,11 @@ export default function IndividualPortal() {
   const agentIdRef = useRef<string | null>(null);
   const assistantAgentIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  /** 已加载过消息的 sessionId 集合，防止 useEffect([urlSessionId, sessions]) 无限循环 */
+  const loadedSessionIds = useRef<Set<string>>(new Set());
+
+  const messaging = useGroupChatMessaging({ sessions, setSessions, useLinkyunChat });
 
   const { pendingFiles, addFiles, removePendingFile, clearPendingFiles } = useFileUpload();
 
@@ -246,35 +246,31 @@ export default function IndividualPortal() {
   }, [urlSessionId, activeSessionId]);
 
   useEffect(() => {
-    if (!urlSessionId || !useLinkyunChat) return;
-    const session = sessions.find((s) => s.id === urlSessionId);
-    if (session && session.messages.length === 0) {
-      (async () => {
-        try {
-          const messages = await getGroupChatMessages(urlSessionId);
-          const localMessages: Message[] = messages
-            .filter((m) => m.role !== 'system')
-            .map((m, idx) => ({
-              id: m.id || `${urlSessionId}-${idx}`,
-              role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-              content: m.content || '',
-              timestamp: m.created_at ? new Date(m.created_at as string).getTime() : Date.now(),
-              attachments: m.attachments?.map((att) => ({
-                type: (att.type === 'image' ? 'image' : 'file') as 'image' | 'file',
-                token: att.token ?? '',
-                mime_type: att.mime_type,
-                name: att.name,
-                size: att.size as number | undefined,
-              })),
-            }));
-          setSessions((prev) =>
-            prev.map((s) => (s.id === urlSessionId ? { ...s, messages: localMessages } : s))
-          );
-        } catch (e) {
-          console.error('加载消息失败', e);
-        }
-      })();
+    if (urlSessionId) {
+      chatInputRef.current?.focus();
     }
+  }, [urlSessionId]);
+
+  // 当 URL 切换到某个 session 时，从服务器加载其消息。
+  // 用 loadedSessionIds ref 做去重保护，防止 setSessions → sessions 变化 → 再次触发的无限循环。
+  useEffect(() => {
+    if (!urlSessionId || !useLinkyunChat) return;
+    if (loadedSessionIds.current.has(urlSessionId)) return;
+
+    const session = sessions.find((s) => s.id === urlSessionId);
+    if (!session) return; // 等 loadGroupChatHistory 把会话加入列表后再拉消息
+
+    loadedSessionIds.current.add(urlSessionId);
+    fetchSessionMessages(urlSessionId)
+      .then((messages) => {
+        setSessions((prev) =>
+          prev.map((s) => (s.id === urlSessionId ? { ...s, messages } : s))
+        );
+      })
+      .catch((e) => {
+        loadedSessionIds.current.delete(urlSessionId); // 允许重试
+        console.error('加载消息失败', e);
+      });
   }, [urlSessionId, sessions]);
 
   useEffect(() => {
@@ -302,7 +298,6 @@ export default function IndividualPortal() {
         createdAt: Date.now(),
       };
       setSessions((prev) => [newSession, ...prev]);
-      setActiveSessionId(newSession.id);
       navigate(`/individual/chat/${newSession.id}`);
       setIsSidebarOpen(false);
     } catch (e) {
@@ -327,7 +322,6 @@ export default function IndividualPortal() {
         agentName: agent.name || '律师助手',
       };
       setSessions((prev) => [newSession, ...prev]);
-      setActiveSessionId(newSession.id);
       navigate(`/individual/chat/${newSession.id}`);
       setIsDiscoverOpen(false);
     } catch (e) {
@@ -361,32 +355,7 @@ export default function IndividualPortal() {
     }
   };
 
-  const refreshSessionMessages = React.useCallback(async (sessionId: string) => {
-    setSessionLoadError(null);
-    try {
-      const messages = await getGroupChatMessages(sessionId);
-      const localMessages: Message[] = messages
-        .filter((m) => m.role !== 'system')
-        .map((m, idx) => ({
-          id: m.id || `${sessionId}-${idx}`,
-          role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-          content: m.content || '',
-          timestamp: m.created_at ? new Date(m.created_at as string).getTime() : Date.now(),
-          attachments: m.attachments?.map((att) => ({
-            type: (att.type === 'image' ? 'image' : 'file') as 'image' | 'file',
-            token: att.token ?? '',
-            mime_type: att.mime_type,
-            name: att.name,
-            size: att.size as number | undefined,
-          })),
-        }));
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, messages: localMessages } : s))
-      );
-    } catch (e) {
-      console.error('刷新消息失败', e);
-    }
-  }, []);
+  const refreshSessionMessages = messaging.refreshSessionMessages;
 
   const selectSession = (sessionId: string) => {
     setIsSidebarOpen(false);
@@ -434,16 +403,17 @@ export default function IndividualPortal() {
   };
 
   const handleSend = async () => {
-    if (!useLinkyunChat) return;
     const text = input.trim();
     const filesToSend = pendingFiles.filter((p) => !p.error);
-    if ((!text && filesToSend.length === 0) || isLoading) return;
+    if ((!text && filesToSend.length === 0) || messaging.isLoading || !useLinkyunChat) return;
 
     setInput('');
-    setIsLoading(true);
+    clearPendingFiles();
 
-    let currentSessionId = activeSessionId;
-    if (!currentSessionId) {
+    let sessionId = activeSessionId;
+
+    // 新用户首次发送：先自动创建会话，再发消息
+    if (!sessionId) {
       setCreatingSession(true);
       try {
         const agentId = agentIdRef.current ?? await getSystemAgentId();
@@ -456,147 +426,26 @@ export default function IndividualPortal() {
           createdAt: Date.now(),
         };
         setSessions((prev) => [newSession, ...prev]);
-        setActiveSessionId(newSession.id);
-        currentSessionId = newSession.id;
+        sessionId = newSession.id;
+        // 标记为已加载，避免消息加载 effect 重复拉取（新会话服务端消息为空）
+        loadedSessionIds.current.add(sessionId);
+        // 更新 URL
+        navigate(`/individual/chat/${sessionId}`);
       } catch (e) {
-        console.error(e);
+        console.error('创建对话失败:', e);
         setCreatingSession(false);
-        setIsLoading(false);
         return;
       } finally {
         setCreatingSession(false);
       }
     }
 
-    // §5.2 步骤 1：上传文件获取 token（在构造消息之前完成）
-    let resolved: Awaited<ReturnType<typeof resolvePendingAttachments>> = [];
-    if (filesToSend.length > 0) {
-      try {
-        resolved = await resolvePendingAttachments(filesToSend);
-      } catch (e) {
-        console.error(e);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // §5.2 步骤 2：用已上传的 token 构造用户消息（乐观更新）
-    const msgAttachments: MessageAttachment[] = resolved.map((a) => ({
-      type: a.type,
-      token: a.token,
-      mime_type: a.mime_type,
-      name: a.name,
-      size: a.size,
-      previewUrl: a.preview_url ?? a.download_url,
-    }));
-
-    const hasImage = resolved.some((a) => a.type === 'image');
-    const defaultContent = hasImage ? '请分析这个图片' : '(附带文档)';
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text || defaultContent,
-      timestamp: Date.now(),
-      attachments: msgAttachments.length ? msgAttachments : undefined,
-    };
-
-    setSessions((prev) => {
-      const found = prev.find((s) => s.id === currentSessionId);
-      if (found) {
-        return prev.map((s) =>
-          s.id === currentSessionId ? { ...s, messages: [...s.messages, userMessage] } : s
-        );
-      }
-      return [
-        { id: currentSessionId!, title: '新对话', messages: [userMessage], createdAt: Date.now() },
-        ...prev,
-      ];
+    await messaging.sendMessage({
+      sessionId,
+      text,
+      pendingFiles: filesToSend,
+      agentId: agentIdRef.current ?? undefined,
     });
-    clearPendingFiles();
-
-    // §5.2 步骤 3：发 API 只传 { type, token }
-    const attachForApi = resolved.length
-      ? resolved.map((a) => ({ type: a.type, token: a.token }))
-      : undefined;
-
-    // 记录发送前的消息数，轮询时用来判断是否收到新的 assistant 回复
-    const currentSession0 = sessions.find((s) => s.id === currentSessionId);
-    const msgCountBefore = currentSession0?.messages?.length ?? 0;
-    const currentSessionAgentId = currentSession0?.agentId ?? agentIdRef.current ?? undefined;
-
-    // 预占一条空的 assistant 消息（拿到回复后填入）
-    const placeholderMsgId = `placeholder-${Date.now()}`;
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id !== currentSessionId
-          ? s
-          : { ...s, messages: [...s.messages, { id: placeholderMsgId, role: 'assistant' as const, content: '', timestamp: Date.now() }] }
-      )
-    );
-
-    const applyContent = (content: string) => {
-      setSessions((prev) =>
-        prev.map((s) => {
-          if (s.id !== currentSessionId) return s;
-          const updatedMessages = s.messages.map((m) =>
-            m.id === placeholderMsgId ? { ...m, content } : m
-          );
-          // 生成对话标题（第 3/4 条消息时触发）
-          if (updatedMessages.length === 3 || updatedMessages.length === 4) {
-            const msgList = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
-            generateSessionTitle(msgList, currentSessionAgentId)
-              .then((title) => {
-                setSessions((latest) =>
-                  latest.map((ls) => (ls.id === currentSessionId ? { ...ls, title } : ls))
-                );
-                if (useLinkyunChat && currentSessionId) {
-                  updateGroupChat(currentSessionId, { title }).catch(() => {});
-                }
-              })
-              .catch(() => {});
-          }
-          return { ...s, messages: updatedMessages };
-        })
-      );
-      setSessionLoadError(null);
-    };
-
-    const removePlaceholder = () => {
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id !== currentSessionId
-            ? s
-            : { ...s, messages: s.messages.filter((m) => m.id !== placeholderMsgId) }
-        )
-      );
-    };
-
-    try {
-      // 先尝试从 POST 响应里拿内容（同步云 Agent）
-      let content = await sendGroupChatMessage(currentSessionId!, {
-        content: text || defaultContent,
-        attachments: attachForApi,
-      });
-
-      // POST 没有返回内容时（异步 Edge Agent），轮询等待 assistant 回复
-      if (!content) {
-        content = await pollForAssistantResponse(currentSessionId!, 60000, msgCountBefore + 1);
-      }
-
-      if (content) {
-        applyContent(content);
-      } else {
-        removePlaceholder();
-        setSessionLoadError(currentSessionId!);
-      }
-    } catch (error) {
-      console.error('发送消息失败:', error);
-      removePlaceholder();
-      setSessionLoadError(currentSessionId!);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const suggestions = texts.individual.suggestions;
@@ -701,7 +550,7 @@ export default function IndividualPortal() {
               <ChatMessageBubble key={msg.id} message={msg} variant="individual" />
             ))
           )}
-          {isLoading && (
+          {messaging.isLoading && (
             <div className="flex justify-start">
               <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none border border-slate-100 flex gap-1">
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
@@ -710,7 +559,7 @@ export default function IndividualPortal() {
               </div>
             </div>
           )}
-          {sessionLoadError === activeSessionId && activeSession && (
+          {messaging.sessionLoadError === activeSessionId && activeSession && (
             <div className="flex flex-col items-center gap-3 py-6">
               <p className="text-slate-500 text-sm">{texts.individual.systemBusy}</p>
               <button
@@ -726,11 +575,12 @@ export default function IndividualPortal() {
         </div>
 
         <ChatInput
+          ref={chatInputRef}
           variant="individual"
           value={input}
           onChange={setInput}
           onSend={handleSend}
-          disabled={isLoading}
+          disabled={messaging.isLoading}
           placeholder={texts.individual.inputPlaceholder}
           pendingFiles={pendingFiles}
           onAddFiles={addFiles}

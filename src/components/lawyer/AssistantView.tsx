@@ -9,38 +9,36 @@ import {
 import {
   listGroupChats,
   createGroupChat,
-  getGroupChatMessages,
-  sendGroupChatMessage,
-  pollForAssistantResponse,
   deleteGroupChat,
   updateGroupChat,
   filterSingleAgentGroupChats,
   type GroupChatInfo,
 } from '../../services/groupChat';
-import type { Message, MessageAttachment, ChatSession } from '../../types';
+import type { ChatSession } from '../../types';
 import { ChatSidebar, ChatMessageBubble, ChatEmptyState, ChatInput } from '../chat';
 import { useFileUpload } from '../../hooks/useFileUpload';
-import { resolvePendingAttachments } from '../../services/files';
 import { texts, tw } from '../../themes';
+import { useGroupChatMessaging } from '../../hooks/useGroupChatMessaging';
 
 export default function AssistantView() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [creatingSession, setCreatingSession] = useState(false);
-  const [sessionLoadError, setSessionLoadError] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editTitleValue, setEditTitleValue] = useState('');
   const [isRegeneratingTitle, setIsRegeneratingTitle] = useState(false);
   const agentIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const useLinkyunChat = !!SYSTEM_ASSISTANT_AGENT_CODE?.trim();
+  const messaging = useGroupChatMessaging({ sessions, setSessions, useLinkyunChat });
 
   const { pendingFiles, addFiles, removePendingFile, clearPendingFiles } = useFileUpload();
 
   const activeSession = sessions.find((s) => s.id === activeSessionId);
-  const useLinkyunChat = !!SYSTEM_ASSISTANT_AGENT_CODE?.trim();
 
   const loadGroupChatHistory = React.useCallback(async () => {
     if (!useLinkyunChat) return;
@@ -85,6 +83,12 @@ export default function AssistantView() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeSession?.messages]);
 
+  useEffect(() => {
+    if (activeSessionId) {
+      chatInputRef.current?.focus();
+    }
+  }, [activeSessionId]);
+
   const createNewSession = async () => {
     if (creatingSession || !useLinkyunChat) return;
     setCreatingSession(true);
@@ -124,63 +128,16 @@ export default function AssistantView() {
     }
   };
 
-  const refreshSessionMessages = React.useCallback(async (sessionId: string) => {
-    setSessionLoadError(null);
-    try {
-      const messages = await getGroupChatMessages(sessionId);
-      const localMessages: Message[] = messages
-        .filter((m) => m.role !== 'system')
-        .map((m, idx) => ({
-          id: m.id || `${sessionId}-${idx}`,
-          role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-          content: m.content || '',
-          timestamp: m.created_at ? new Date(m.created_at as string).getTime() : Date.now(),
-          attachments: m.attachments?.map((att) => ({
-            type: (att.type === 'image' ? 'image' : 'file') as 'image' | 'file',
-            token: att.token ?? '',
-            mime_type: att.mime_type,
-            name: att.name,
-            size: att.size as number | undefined,
-          })),
-        }));
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, messages: localMessages } : s))
-      );
-    } catch (e) {
-      console.error('刷新消息失败', e);
-    }
-  }, []);
+  const refreshSessionMessages = messaging.refreshSessionMessages;
 
   const selectSession = async (sessionId: string) => {
     setActiveSessionId(sessionId);
-    setSessionLoadError(null);
+    messaging.setSessionLoadError(null);
     setIsSidebarOpen(false);
 
     const session = sessions.find((s) => s.id === sessionId);
     if (session && session.messages.length === 0 && useLinkyunChat) {
-      try {
-        const messages = await getGroupChatMessages(sessionId);
-        const localMessages: Message[] = messages
-          .filter((m) => m.role !== 'system')
-          .map((m, idx) => ({
-            id: m.id || `${sessionId}-${idx}`,
-            role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-            content: m.content || '',
-            timestamp: m.created_at ? new Date(m.created_at as string).getTime() : Date.now(),
-            attachments: m.attachments?.map((att) => ({
-              type: (att.type === 'image' ? 'image' : 'file') as 'image' | 'file',
-              token: att.token ?? '',
-              mime_type: att.mime_type,
-              name: att.name,
-              size: att.size as number | undefined,
-            })),
-          }));
-        setSessions((prev) =>
-          prev.map((s) => (s.id === sessionId ? { ...s, messages: localMessages } : s))
-        );
-      } catch (e) {
-        console.error('加载消息失败', e);
-      }
+      await messaging.refreshSessionMessages(sessionId);
     }
   };
 
@@ -227,13 +184,15 @@ export default function AssistantView() {
   const handleSend = async () => {
     const text = input.trim();
     const filesToSend = pendingFiles.filter((p) => !p.error);
-    if ((!text && filesToSend.length === 0) || isLoading || !useLinkyunChat) return;
+    if ((!text && filesToSend.length === 0) || messaging.isLoading || !useLinkyunChat) return;
 
     setInput('');
-    setIsLoading(true);
+    clearPendingFiles();
 
-    let currentSessionId = activeSessionId;
-    if (!currentSessionId) {
+    let sessionId = activeSessionId;
+
+    // 新用户首次发送：先自动创建会话
+    if (!sessionId) {
       setCreatingSession(true);
       try {
         const agentId = agentIdRef.current ?? (await getAgentByCode(SYSTEM_ASSISTANT_AGENT_CODE!)).id;
@@ -247,139 +206,22 @@ export default function AssistantView() {
         };
         setSessions((prev) => [newSession, ...prev]);
         setActiveSessionId(newSession.id);
-        currentSessionId = newSession.id;
+        sessionId = newSession.id;
       } catch (e) {
-        console.error(e);
+        console.error('创建对话失败:', e);
         setCreatingSession(false);
-        setIsLoading(false);
         return;
       } finally {
         setCreatingSession(false);
       }
     }
 
-    // §5.2 步骤 1：上传文件获取 token
-    let resolved: Awaited<ReturnType<typeof resolvePendingAttachments>> = [];
-    if (filesToSend.length > 0) {
-      try {
-        resolved = await resolvePendingAttachments(filesToSend);
-      } catch (e) {
-        console.error(e);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // §5.2 步骤 2：用已上传的 token 构造用户消息（乐观更新）
-    const msgAttachments: MessageAttachment[] = resolved.map((a) => ({
-      type: a.type,
-      token: a.token,
-      mime_type: a.mime_type,
-      name: a.name,
-      size: a.size,
-      previewUrl: a.preview_url ?? a.download_url,
-    }));
-
-    const hasImage = resolved.some((a) => a.type === 'image');
-    const defaultContent = hasImage ? '请分析这个图片' : '(附带文档)';
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: text || defaultContent,
-      timestamp: Date.now(),
-      attachments: msgAttachments.length ? msgAttachments : undefined,
-    };
-
-    setSessions((prev) => {
-      const found = prev.find((s) => s.id === currentSessionId);
-      if (found) {
-        return prev.map((s) =>
-          s.id === currentSessionId ? { ...s, messages: [...s.messages, userMessage] } : s
-        );
-      }
-      return [
-        { id: currentSessionId!, title: '新对话', messages: [userMessage], createdAt: Date.now() },
-        ...prev,
-      ];
+    await messaging.sendMessage({
+      sessionId,
+      text,
+      pendingFiles: filesToSend,
+      agentId: agentIdRef.current ?? undefined,
     });
-    clearPendingFiles();
-
-    // §5.2 步骤 3：发 API 只传 { type, token }
-    const attachForApi = resolved.length
-      ? resolved.map((a) => ({ type: a.type, token: a.token }))
-      : undefined;
-
-    const currentSession0 = sessions.find((s) => s.id === currentSessionId);
-    const msgCountBefore = currentSession0?.messages?.length ?? 0;
-    const currentSessionAgentId = currentSession0?.agentId ?? agentIdRef.current ?? undefined;
-
-    const placeholderMsgId = `placeholder-${Date.now()}`;
-    setSessions((prev) =>
-      prev.map((s) =>
-        s.id !== currentSessionId
-          ? s
-          : { ...s, messages: [...s.messages, { id: placeholderMsgId, role: 'assistant' as const, content: '', timestamp: Date.now() }] }
-      )
-    );
-
-    const applyContent = (content: string) => {
-      setSessions((prev) =>
-        prev.map((s) => {
-          if (s.id !== currentSessionId) return s;
-          const updatedMessages = s.messages.map((m) =>
-            m.id === placeholderMsgId ? { ...m, content } : m
-          );
-          if (updatedMessages.length === 3 || updatedMessages.length === 4) {
-            const msgList = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
-            generateSessionTitle(msgList, currentSessionAgentId)
-              .then((title) => {
-                setSessions((latest) =>
-                  latest.map((ls) => (ls.id === currentSessionId ? { ...ls, title } : ls))
-                );
-                updateGroupChat(currentSessionId!, { title }).catch(() => {});
-              })
-              .catch(() => {});
-          }
-          return { ...s, messages: updatedMessages };
-        })
-      );
-      setSessionLoadError(null);
-    };
-
-    const removePlaceholder = () => {
-      setSessions((prev) =>
-        prev.map((s) =>
-          s.id !== currentSessionId
-            ? s
-            : { ...s, messages: s.messages.filter((m) => m.id !== placeholderMsgId) }
-        )
-      );
-    };
-
-    try {
-      let content = await sendGroupChatMessage(currentSessionId!, {
-        content: text || defaultContent,
-        attachments: attachForApi,
-      });
-
-      if (!content) {
-        content = await pollForAssistantResponse(currentSessionId!, 60000, msgCountBefore + 1);
-      }
-
-      if (content) {
-        applyContent(content);
-      } else {
-        removePlaceholder();
-        setSessionLoadError(currentSessionId!);
-      }
-    } catch (e) {
-      console.error('发送消息失败:', e);
-      removePlaceholder();
-      setSessionLoadError(currentSessionId!);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   if (!useLinkyunChat) {
@@ -458,7 +300,7 @@ export default function AssistantView() {
               <ChatMessageBubble key={msg.id} message={msg} variant="lawyer" />
             ))
           )}
-          {isLoading && (
+          {messaging.isLoading && (
             <div className="flex justify-start">
               <div className="bg-slate-50 p-4 rounded-2xl rounded-tl-none border border-slate-100 flex gap-1">
                 <span className="w-1.5 h-1.5 bg-slate-300 rounded-full animate-bounce" />
@@ -467,7 +309,7 @@ export default function AssistantView() {
               </div>
             </div>
           )}
-          {sessionLoadError === activeSessionId && activeSession && (
+          {messaging.sessionLoadError === activeSessionId && activeSession && (
             <div className="flex flex-col items-center gap-3 py-6">
               <p className="text-slate-500 text-sm">{texts.individual.systemBusy}</p>
               <button
@@ -483,11 +325,12 @@ export default function AssistantView() {
         </div>
 
         <ChatInput
+          ref={chatInputRef}
           variant="lawyer"
           value={input}
           onChange={setInput}
           onSend={handleSend}
-          disabled={isLoading}
+          disabled={messaging.isLoading}
           placeholder={texts.lawyer.assistant.inputPlaceholder}
           pendingFiles={pendingFiles}
           onAddFiles={addFiles}

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import { Send, ImagePlus, FileText, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { IMAGE_ACCEPT, DOC_ACCEPT } from '../../hooks/useFileUpload';
@@ -33,7 +33,7 @@ interface ChatInputProps {
   hint?: string;
 }
 
-export default function ChatInput({
+const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(function ChatInput({
   variant = 'individual',
   value,
   onChange,
@@ -44,7 +44,7 @@ export default function ChatInput({
   onAddFiles,
   onRemoveFile,
   hint = '支持图片（jpg/png/gif/webp）与文档（pdf/doc/docx/txt/md）。AI 助手仅供参考。',
-}: ChatInputProps) {
+}, ref) {
   const styles = variantStyles[variant];
   const imageInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +95,7 @@ export default function ChatInput({
         )}
         <div className="relative">
           <textarea
+            ref={ref}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -155,4 +156,6 @@ export default function ChatInput({
       <p className="text-[10px] text-center text-slate-400 mt-2">{hint}</p>
     </div>
   );
-}
+});
+
+export default ChatInput;
