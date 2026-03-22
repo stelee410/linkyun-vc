@@ -137,6 +137,8 @@ export interface SimpleChatRequest {
   model?: string;
   temperature?: number;
   max_tokens?: number;
+  /** 若指定，后端将使用该 Agent 的 LLM 配置（provider/model/key），避免走系统默认 */
+  agent_id?: string;
 }
 
 /** Simple Chat 响应 */
@@ -173,24 +175,30 @@ export async function simpleChat(params: SimpleChatRequest): Promise<SimpleChatR
 
 /**
  * 根据前 N 条消息生成对话标题 - 使用 Simple Chat API
- * 文档 §4.8：使用系统 LLM，无需 Agent ID
+ * @param messages 对话消息列表
+ * @param agentId  可选，指定该 Agent ID，后端将使用其 LLM 配置（避免走系统默认 provider）
  */
 export async function generateSessionTitle(
-  messages: Array<{ role: string; content: string }>
+  messages: Array<{ role: string; content: string }>,
+  agentId?: string
 ): Promise<string> {
   const first3 = messages.slice(0, 3);
+  const excerpt = first3
+    .map((m) => `${m.role === 'user' ? '用户' : '助手'}: ${String(m.content ?? '').slice(0, 200)}`)
+    .join('\n');
+
   const chatMessages: Array<{ role: 'user' | 'assistant'; content: string }> = [
     {
       role: 'user',
-      content: `根据以下对话内容，生成一个简短的标题（不超过10个字）。只返回标题，不要解释或标点。\n\n${first3.map(m => `${m.role}: ${m.content}`).join('\n')}`,
+      content: `请根据以下对话，给出一个不超过10个字的简洁标题，只输出标题本身，不加任何解释或标点。\n\n${excerpt}`,
     },
   ];
 
   const data = await simpleChat({
     messages: chatMessages,
-    system_prompt: '你是一个帮助生成对话标题的助手。只返回简短的标题，不要任何解释。',
+    system_prompt: '你是标题生成助手，只输出标题，不超过10字。',
     temperature: 0.3,
-    max_tokens: 1024,
+    ...(agentId ? { agent_id: agentId } : {}),
   });
 
   return data.content.trim() || '新对话';

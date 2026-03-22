@@ -120,6 +120,7 @@ export async function updateAgent(
     status: 'draft' | 'active';
     rag_config: { knowledge_base_ids?: string[] } | null;
     knowledge_base_id: number | null;
+    metadata: Record<string, unknown>;
   }>
 ): Promise<AgentInfo> {
   const res = await requestWithAuth(`/api/v1/agents/${id}`, {

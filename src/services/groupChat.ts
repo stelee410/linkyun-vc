@@ -167,26 +167,186 @@ export async function getGroupChatMessages(id: string): Promise<MessageItem[]> {
   return data?.messages ?? data?.items ?? [];
 }
 
-/** 发送群聊消息 - POST /api/v1/user/group-chats/{id}/messages
- * 文档 §4.3：attachments 只需 { type, token }
- */
+export interface GroupAgentReply {
+  message_id?: string;
+  agent_id?: string | number;
+  agent_name?: string;
+  content?: string;
+  [key: string]: unknown;
+}
+
+export interface GroupSendMessageResponse {
+  user_message_id?: string;
+  replies?: GroupAgentReply[];
+  [key: string]: unknown;
+}
+
+export interface StreamEvent {
+  type: 'delta' | 'done' | 'error' | 'queued' | string;
+  text?: string;
+  message_id?: string;
+  error?: string;
+  [key: string]: unknown;
+}
+
+/** 从任意格式的 JSON 响应中提取 assistant 回复内容 */
+function extractContentFromJson(raw: unknown): string | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const d = raw as Record<string, unknown>;
+
+  // { replies: [{content}] }
+  if (Array.isArray(d.replies) && d.replies.length > 0) {
+    const c = (d.replies[0] as Record<string, unknown>)?.content;
+    if (typeof c === 'string' && c.trim()) return c.trim();
+  }
+  // { messages: [{role: 'assistant', content}] }
+  if (Array.isArray(d.messages)) {
+    const msgs = d.messages as Record<string, unknown>[];
+    const last = [...msgs].reverse().find(
+      (m) => m?.role === 'assistant' && typeof m?.content === 'string' && (m.content as string).trim()
+    );
+    if (last) return (last.content as string).trim();
+  }
+  // { role: 'assistant', content }
+  if (d.role === 'assistant' && typeof d.content === 'string' && d.content.trim()) {
+    return d.content.trim();
+  }
+  // { content } flat
+  if (typeof d.content === 'string' && d.content.trim()) return d.content.trim();
+
+  return null;
+}
+
+/** 发送群聊消息（非流式）- POST /api/v1/user/group-chats/{id}/messages */
 export async function sendGroupChatMessage(
   id: string,
   params: {
     content?: string;
     attachments?: Array<{ type: string; token: string }>;
-    stream?: boolean;
   }
-): Promise<MessageItem | { messages?: MessageItem[] }> {
+): Promise<string | null> {
   const res = await requestWithAuth(`/api/v1/user/group-chats/${id}/messages`, {
     method: 'POST',
     body: {
       content: params.content || '',
       ...(params.attachments?.length && { attachments: params.attachments }),
-      stream: params.stream ?? false,
     },
   });
-  return parseJsonResponse<MessageItem | { messages?: MessageItem[] }>(res);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = (err as { error?: { message?: string } })?.error?.message || `HTTP ${res.status}`;
+    console.error('[sendGroupChatMessage] POST 失败:', res.status, msg, err);
+    throw new Error(msg);
+  }
+  const json = await res.json().catch(() => ({}));
+  console.log('[sendGroupChatMessage] POST 响应:', JSON.stringify(json).slice(0, 500));
+  const data = (json as Record<string, unknown>)?.data !== undefined
+    ? (json as Record<string, unknown>).data
+    : json;
+  const content = extractContentFromJson(data);
+  console.log('[sendGroupChatMessage] 提取到内容:', content ? content.slice(0, 100) : null);
+  return content;
+}
+
+/** 流式发送群聊消息（SSE）- POST /api/v1/user/group-chats/{id}/messages (stream=true)
+ * 若服务端不支持 SSE 则自动降级为 JSON 解析
+ */
+export async function sendGroupChatMessageStream(
+  id: string,
+  params: {
+    content?: string;
+    attachments?: Array<{ type: string; token: string }>;
+  },
+  callbacks: {
+    onChunk: (text: string) => void;
+    onDone: (messageId?: string) => void;
+    onQueued?: () => void;
+  }
+): Promise<void> {
+  const res = await requestWithAuth(`/api/v1/user/group-chats/${id}/messages`, {
+    method: 'POST',
+    body: {
+      content: params.content || '',
+      ...(params.attachments?.length && { attachments: params.attachments }),
+      stream: true,
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: { message?: string } })?.error?.message || `HTTP ${res.status}`);
+  }
+
+  const contentType = res.headers.get('Content-Type') ?? '';
+  const isSSE = contentType.includes('text/event-stream');
+
+  if (!isSSE) {
+    // 非 SSE 降级：尝试从多种 JSON 格式中提取内容
+    const json = await res.json().catch(() => ({}));
+    const data = (json as Record<string, unknown>)?.data ?? json;
+    if ((data as Record<string, unknown>)?.queued) {
+      callbacks.onQueued?.();
+      return;
+    }
+    const content = extractContentFromJson(data);
+    if (content) {
+      callbacks.onChunk(content);
+      callbacks.onDone();
+      return;
+    }
+    // 格式未识别时抛出，让调用方走 poll 兜底
+    throw new Error(`未知的响应格式: ${JSON.stringify(data).slice(0, 200)}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) throw new Error('No response body');
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let gotDone = false;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (!raw) continue;
+        try {
+          const ev = JSON.parse(raw) as StreamEvent;
+          if (ev.type === 'delta' && ev.text) {
+            callbacks.onChunk(ev.text);
+          } else if (ev.type === 'done') {
+            callbacks.onDone(ev.message_id);
+            gotDone = true;
+            return;
+          } else if (ev.type === 'queued') {
+            callbacks.onQueued?.();
+            gotDone = true;
+            return;
+          } else if (ev.type === 'error') {
+            throw new Error(ev.error ?? 'Stream error');
+          }
+        } catch (e) {
+          if (!(e instanceof SyntaxError)) throw e;
+        }
+      }
+    }
+    if (!gotDone && buffer.startsWith('data: ')) {
+      const raw = buffer.slice(6).trim();
+      if (raw) {
+        try {
+          const ev = JSON.parse(raw) as StreamEvent;
+          if (ev.type === 'done') callbacks.onDone(ev.message_id);
+        } catch { /* ignore */ }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -206,9 +366,13 @@ export async function pollForAssistantResponse(
   timeoutMs: number = POLL_TIMEOUT_MS,
   minMessageCount: number = 0
 ): Promise<string | null> {
+  console.log(`[poll] 开始轮询 chatId=${chatId}, minMessageCount=${minMessageCount}, timeout=${timeoutMs}ms`);
   const start = Date.now();
+  let pollCount = 0;
   while (Date.now() - start < timeoutMs) {
     const messages = await getGroupChatMessages(chatId);
+    pollCount++;
+    console.log(`[poll] #${pollCount} messages.length=${messages.length}, last.role=${messages[messages.length - 1]?.role}`);
     if (messages.length <= minMessageCount) {
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       continue;
@@ -218,8 +382,10 @@ export async function pollForAssistantResponse(
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       continue;
     }
+    console.log('[poll] 收到 assistant 回复');
     return (last.content as string).trim();
   }
+  console.warn('[poll] 超时，未收到回复');
   return null;
 }
 

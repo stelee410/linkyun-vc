@@ -43,6 +43,8 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
   const [systemPrompt, setSystemPrompt] = useState('');
   const [selectedKbId, setSelectedKbId] = useState('');
 
+  const [hideFromDiscover, setHideFromDiscover] = useState(false);
+
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarCropSrc, setAvatarCropSrc] = useState<string | null>(null);
   const [avatarVersion, setAvatarVersion] = useState(0);
@@ -75,6 +77,7 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
         setSystemPrompt(a.system_prompt || '');
         setSelectedKbId(a.knowledge_base_id ? String(a.knowledge_base_id) : '');
         setCurrentStatus(a.status === 'active' ? 'active' : 'draft');
+        setHideFromDiscover(!!(a.metadata as Record<string, unknown> | undefined)?.hide_from_discover);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : '加载失败');
       } finally {
@@ -196,19 +199,15 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
     }
     setError('');
     try {
-      const body: Record<string, unknown> = {
+      const existingMeta = (agent.metadata as Record<string, unknown> | undefined) ?? {};
+      const body: Parameters<typeof updateAgent>[1] = {
         name: name.trim() || undefined,
         description: description.trim() || undefined,
         system_prompt: systemPrompt.trim() || undefined,
+        knowledge_base_id: selectedKbId ? Number(selectedKbId) : null,
+        metadata: { ...existingMeta, hide_from_discover: hideFromDiscover },
+        ...(targetStatus ? { status: targetStatus } : {}),
       };
-      if (selectedKbId) {
-        body.knowledge_base_id = Number(selectedKbId);
-      } else {
-        body.knowledge_base_id = null;
-      }
-      if (targetStatus) {
-        body.status = targetStatus;
-      }
       await updateAgent(agent.id, body);
       if (targetStatus) {
         setCurrentStatus(targetStatus);
@@ -393,6 +392,28 @@ export default function DigitalTwinEditView({ agentId, agentStatus, onRefresh }:
               </button>
             )}
           </div>
+        </div>
+
+        <div className="flex items-start justify-between gap-4 py-1">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-slate-700">{texts.lawyer.twin.hideFromDiscover}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{texts.lawyer.twin.hideFromDiscoverHint}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hideFromDiscover}
+            onClick={() => setHideFromDiscover((v) => !v)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+              hideFromDiscover ? 'bg-slate-400' : tw.btnPrimary.split(' ')[0]
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                hideFromDiscover ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
         </div>
 
         {avatarCropSrc && (

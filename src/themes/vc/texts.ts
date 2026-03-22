@@ -117,6 +117,8 @@ export const texts = {
       preSkillsLabel: '对话前技能',
       imageUpload: '图像上传',
       docUpload: '文档上传',
+      hideFromDiscover: '不在「发现」页面显示',
+      hideFromDiscoverHint: '开启后，创业者将无法在发现页面看到此投资画像',
     },
     knowledge: {
       title: '项目库管理',

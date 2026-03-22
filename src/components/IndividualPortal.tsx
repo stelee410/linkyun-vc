@@ -9,12 +9,12 @@ import {
   createGroupChat,
   getGroupChatMessages,
   sendGroupChatMessage,
+  pollForAssistantResponse,
   deleteGroupChat,
   updateGroupChat,
-  pollForAssistantResponse,
   type GroupChatInfo,
 } from '../services/groupChat';
-import { generateSessionTitle, type MessageItem } from '../services/chat';
+import { generateSessionTitle } from '../services/chat';
 import { ChatSidebar, ChatMessageBubble, ChatEmptyState, ChatInput, type MenuItem } from './chat';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { resolvePendingAttachments } from '../services/files';
@@ -44,12 +44,14 @@ const SYSTEM_AGENT_CODES = new Set(
     .map((c) => c.trim().toLowerCase())
 );
 
-/** 过滤掉系统预设 Agent，只保留律师创建的数字人 */
+/** 过滤掉系统预设 Agent 以及设置了「不在 Discover 显示」的 Agent */
 function filterSystemAgents(agents: AgentInfo[]): AgentInfo[] {
-  if (SYSTEM_AGENT_CODES.size === 0) return agents;
   return agents.filter((a) => {
     const code = a.code?.trim().toLowerCase();
-    return !code || !SYSTEM_AGENT_CODES.has(code);
+    if (SYSTEM_AGENT_CODES.size > 0 && code && SYSTEM_AGENT_CODES.has(code)) return false;
+    const meta = a.metadata as Record<string, unknown> | undefined;
+    if (meta?.hide_from_discover) return false;
+    return true;
   });
 }
 
@@ -396,7 +398,7 @@ export default function IndividualPortal() {
     setIsRegeneratingTitle(true);
     try {
       const msgList = activeSession.messages.map((m) => ({ role: m.role, content: m.content }));
-      const newTitle = await generateSessionTitle(msgList);
+      const newTitle = await generateSessionTitle(msgList, activeSession.agentId ?? agentIdRef.current ?? undefined);
       setSessions((prev) =>
         prev.map((s) => (s.id === activeSessionId ? { ...s, title: newTitle } : s))
       );
@@ -518,20 +520,32 @@ export default function IndividualPortal() {
       ? resolved.map((a) => ({ type: a.type, token: a.token }))
       : undefined;
 
-    const appendAssistantMessage = (content: string) => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content,
-        timestamp: Date.now(),
-      };
+    // 记录发送前的消息数，轮询时用来判断是否收到新的 assistant 回复
+    const currentSession0 = sessions.find((s) => s.id === currentSessionId);
+    const msgCountBefore = currentSession0?.messages?.length ?? 0;
+    const currentSessionAgentId = currentSession0?.agentId ?? agentIdRef.current ?? undefined;
+
+    // 预占一条空的 assistant 消息（拿到回复后填入）
+    const placeholderMsgId = `placeholder-${Date.now()}`;
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id !== currentSessionId
+          ? s
+          : { ...s, messages: [...s.messages, { id: placeholderMsgId, role: 'assistant' as const, content: '', timestamp: Date.now() }] }
+      )
+    );
+
+    const applyContent = (content: string) => {
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== currentSessionId) return s;
-          const newMessages = [...s.messages, assistantMessage];
-          if (newMessages.length === 3 || newMessages.length === 4) {
-            const msgList = newMessages.map((m) => ({ role: m.role, content: m.content }));
-            generateSessionTitle(msgList)
+          const updatedMessages = s.messages.map((m) =>
+            m.id === placeholderMsgId ? { ...m, content } : m
+          );
+          // 生成对话标题（第 3/4 条消息时触发）
+          if (updatedMessages.length === 3 || updatedMessages.length === 4) {
+            const msgList = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
+            generateSessionTitle(msgList, currentSessionAgentId)
               .then((title) => {
                 setSessions((latest) =>
                   latest.map((ls) => (ls.id === currentSessionId ? { ...ls, title } : ls))
@@ -542,45 +556,44 @@ export default function IndividualPortal() {
               })
               .catch(() => {});
           }
-          return { ...s, messages: newMessages };
+          return { ...s, messages: updatedMessages };
         })
+      );
+      setSessionLoadError(null);
+    };
+
+    const removePlaceholder = () => {
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id !== currentSessionId
+            ? s
+            : { ...s, messages: s.messages.filter((m) => m.id !== placeholderMsgId) }
+        )
       );
     };
 
-    const msgCountBefore = sessions.find((s) => s.id === currentSessionId)?.messages?.length ?? 0;
-    const minCount = msgCountBefore + 1;
-
-    const extractFromResponse = (res: MessageItem | { messages?: MessageItem[] }): string | null => {
-      const m = res as MessageItem;
-      if (m?.role === 'assistant' && typeof m?.content === 'string' && m.content.trim()) return m.content.trim();
-      const arr = (res as { messages?: MessageItem[] }).messages;
-      if (Array.isArray(arr) && arr.length > minCount) {
-        const last = arr[arr.length - 1];
-        if (last?.role === 'assistant' && typeof last?.content === 'string' && (last.content as string).trim()) {
-          return (last.content as string).trim();
-        }
-      }
-      return null;
-    };
-
     try {
-      const res = await sendGroupChatMessage(currentSessionId!, {
+      // 先尝试从 POST 响应里拿内容（同步云 Agent）
+      let content = await sendGroupChatMessage(currentSessionId!, {
         content: text || defaultContent,
         attachments: attachForApi,
-        stream: false,
       });
-      let content = extractFromResponse(res);
+
+      // POST 没有返回内容时（异步 Edge Agent），轮询等待 assistant 回复
       if (!content) {
-        content = await pollForAssistantResponse(currentSessionId!, 30000, minCount);
+        content = await pollForAssistantResponse(currentSessionId!, 60000, msgCountBefore + 1);
       }
+
       if (content) {
-        appendAssistantMessage(content);
-        setSessionLoadError(null);
+        applyContent(content);
       } else {
+        removePlaceholder();
         setSessionLoadError(currentSessionId!);
       }
     } catch (error) {
-      console.error(error);
+      console.error('发送消息失败:', error);
+      removePlaceholder();
+      setSessionLoadError(currentSessionId!);
     } finally {
       setIsLoading(false);
     }

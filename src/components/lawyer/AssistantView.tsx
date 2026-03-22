@@ -5,16 +5,15 @@ import { SYSTEM_ASSISTANT_AGENT_CODE } from '../../config/api';
 import {
   getAgentByCode,
   generateSessionTitle,
-  type MessageItem,
 } from '../../services/chat';
 import {
   listGroupChats,
   createGroupChat,
   getGroupChatMessages,
   sendGroupChatMessage,
+  pollForAssistantResponse,
   deleteGroupChat,
   updateGroupChat,
-  pollForAssistantResponse,
   filterSingleAgentGroupChats,
   type GroupChatInfo,
 } from '../../services/groupChat';
@@ -190,7 +189,7 @@ export default function AssistantView() {
     setIsRegeneratingTitle(true);
     try {
       const msgList = activeSession.messages.map((m) => ({ role: m.role, content: m.content }));
-      const newTitle = await generateSessionTitle(msgList);
+      const newTitle = await generateSessionTitle(msgList, activeSession.agentId ?? agentIdRef.current ?? undefined);
       setSessions((prev) =>
         prev.map((s) => (s.id === activeSessionId ? { ...s, title: newTitle } : s))
       );
@@ -311,20 +310,29 @@ export default function AssistantView() {
       ? resolved.map((a) => ({ type: a.type, token: a.token }))
       : undefined;
 
-    const appendAssistantMessage = (content: string) => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content,
-        timestamp: Date.now(),
-      };
+    const currentSession0 = sessions.find((s) => s.id === currentSessionId);
+    const msgCountBefore = currentSession0?.messages?.length ?? 0;
+    const currentSessionAgentId = currentSession0?.agentId ?? agentIdRef.current ?? undefined;
+
+    const placeholderMsgId = `placeholder-${Date.now()}`;
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id !== currentSessionId
+          ? s
+          : { ...s, messages: [...s.messages, { id: placeholderMsgId, role: 'assistant' as const, content: '', timestamp: Date.now() }] }
+      )
+    );
+
+    const applyContent = (content: string) => {
       setSessions((prev) =>
         prev.map((s) => {
           if (s.id !== currentSessionId) return s;
-          const newMessages = [...s.messages, assistantMessage];
-          if (newMessages.length === 3 || newMessages.length === 4) {
-            const msgList = newMessages.map((m) => ({ role: m.role, content: m.content }));
-            generateSessionTitle(msgList)
+          const updatedMessages = s.messages.map((m) =>
+            m.id === placeholderMsgId ? { ...m, content } : m
+          );
+          if (updatedMessages.length === 3 || updatedMessages.length === 4) {
+            const msgList = updatedMessages.map((m) => ({ role: m.role, content: m.content }));
+            generateSessionTitle(msgList, currentSessionAgentId)
               .then((title) => {
                 setSessions((latest) =>
                   latest.map((ls) => (ls.id === currentSessionId ? { ...ls, title } : ls))
@@ -333,45 +341,42 @@ export default function AssistantView() {
               })
               .catch(() => {});
           }
-          return { ...s, messages: newMessages };
+          return { ...s, messages: updatedMessages };
         })
+      );
+      setSessionLoadError(null);
+    };
+
+    const removePlaceholder = () => {
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id !== currentSessionId
+            ? s
+            : { ...s, messages: s.messages.filter((m) => m.id !== placeholderMsgId) }
+        )
       );
     };
 
-    const msgCountBefore = sessions.find((s) => s.id === currentSessionId)?.messages?.length ?? 0;
-    const minCount = msgCountBefore + 1;
-
-    const extractFromResponse = (res: MessageItem | { messages?: MessageItem[] }): string | null => {
-      const m = res as MessageItem;
-      if (m?.role === 'assistant' && typeof m?.content === 'string' && m.content.trim()) return m.content.trim();
-      const arr = (res as { messages?: MessageItem[] }).messages;
-      if (Array.isArray(arr) && arr.length > minCount) {
-        const last = arr[arr.length - 1];
-        if (last?.role === 'assistant' && typeof last?.content === 'string' && (last.content as string).trim()) {
-          return (last.content as string).trim();
-        }
-      }
-      return null;
-    };
-
     try {
-      const res = await sendGroupChatMessage(currentSessionId!, {
+      let content = await sendGroupChatMessage(currentSessionId!, {
         content: text || defaultContent,
         attachments: attachForApi,
-        stream: false,
       });
-      let content = extractFromResponse(res);
+
       if (!content) {
-        content = await pollForAssistantResponse(currentSessionId!, 30000, minCount);
+        content = await pollForAssistantResponse(currentSessionId!, 60000, msgCountBefore + 1);
       }
+
       if (content) {
-        appendAssistantMessage(content);
-        setSessionLoadError(null);
+        applyContent(content);
       } else {
+        removePlaceholder();
         setSessionLoadError(currentSessionId!);
       }
     } catch (e) {
-      console.error(e);
+      console.error('发送消息失败:', e);
+      removePlaceholder();
+      setSessionLoadError(currentSessionId!);
     } finally {
       setIsLoading(false);
     }
