@@ -35,7 +35,7 @@ read input; SYSTEM_AGENT_CODE="${input:-legalwise}"
 echo -ne "${GREEN}System Assistant Agent Code${NC} [${YELLOW}legalwise-assistant${NC}]: "
 read input; SYSTEM_ASSISTANT_AGENT_CODE="${input:-legalwise-assistant}"
 
-echo -ne "${GREEN}Site Theme (legalwise/vc)${NC} [${YELLOW}legalwise${NC}]: "
+echo -ne "${GREEN}Site Theme (legalwise/vc/healthcare)${NC} [${YELLOW}legalwise${NC}]: "
 read input; SITE_THEME="${input:-legalwise}"
 
 echo -ne "${GREEN}Register Invitation Code${NC} [${YELLOW}legalwise${NC}]: "

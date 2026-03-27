@@ -5,16 +5,19 @@
  * 可用值：
  * - vc: 凌云资本 VC 深蓝色主题（为风险投资服务）
  * - legalwise: 律小乖 法律主题（律师给用户提供专业的法律咨询服务，默认）
+ * - healthcare: 医小伴 医疗健康主题（患者咨询与医护工作流）
  */
 
 import * as vcTheme from './vc';
 import * as legalwiseTheme from './legalwise';
+import * as healthcareTheme from './healthcare';
 
 const THEME = import.meta.env.VITE_SITE_THEME || 'legalwise';
 
 const themes = {
   vc: vcTheme,
   legalwise: legalwiseTheme,
+  healthcare: healthcareTheme,
 } as const;
 
 type ThemeKey = keyof typeof themes;

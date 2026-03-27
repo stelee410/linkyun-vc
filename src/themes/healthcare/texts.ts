@@ -1,0 +1,175 @@
+/**
+ * 医疗健康主题 - 文字/文案配置
+ */
+export const texts = {
+  // 品牌
+  brand: {
+    name: '医小伴',
+    nameEn: 'HealthCare AI',
+    slogan: '守护您的健康',
+    description: '专业的医疗健康 AI 智能咨询平台',
+    copyright: '© 2026 医小伴 HealthCare AI. 守护您的健康。',
+    icp: '京ICP备20260001号-1',
+  },
+
+  // 角色（路由仍为 individual / lawyer / judiciary）
+  roles: {
+    individual: {
+      id: 'individual',
+      title: '患者/用户',
+      description: '寻求健康咨询与就医指导的用户',
+    },
+    lawyer: {
+      id: 'lawyer',
+      title: '医护端',
+      description: '医生、护士等医疗服务提供者',
+    },
+    judiciary: {
+      id: 'judiciary',
+      title: '院务端',
+      description: '医院管理与运营人员',
+    },
+  },
+
+  // 登录页
+  login: {
+    welcome: '欢迎登录',
+    register: '注册账号',
+    registerHint: '填写信息并输入邀请码完成注册',
+    loginHint: '请输入您的账号信息并选择登录身份',
+    usernamePlaceholder: '请输入用户名或邮箱',
+    passwordPlaceholder: '请输入密码',
+    rememberMe: '记住我',
+    forgotPassword: '忘记密码？',
+    loginButton: '立即登录',
+    registerButton: '立即注册',
+    noAccount: '还没有账号？',
+    hasAccount: '已有账号？',
+    goRegister: '立即注册',
+    goLogin: '返回登录',
+    accessDenied: '访问受限',
+    accessDeniedMsg: '您暂时还没有医护端的访问权限，请联系管理员开通。',
+  },
+
+  // 患者/用户端（Individual Portal）
+  individual: {
+    sidebarTitle: '健康 AI',
+    headerTitle: '健康咨询助手',
+    newChat: '发起新对话',
+    historyTitle: '历史对话',
+    discover: '发现',
+    tools: '工具',
+    emptyTitle: '您好，我是您的健康助手',
+    emptyDescription: '我可以帮您了解症状与就医建议、解读检查报告要点、科普用药与慢病管理（仅供参考）。',
+    suggestions: ['感冒发热什么情况下需要去医院？', '高血压患者日常要注意什么？', '体检报告指标偏高怎么办？'],
+    inputPlaceholder: '描述您的健康问题',
+    inputHint: '支持图片（jpg/png/gif/webp）与文档（pdf/doc/docx/txt/md）。AI 助手仅供参考，不能替代线下诊疗。',
+    discoverTitle: '发现医护数字人',
+    discoverDescription: '选择专科领域的 AI 医护助手',
+    noAdvisors: '暂无医护数字人',
+    noAdvisorsHint: '医护创建数字分身后将显示在这里',
+    advisorDefault: '医护助手',
+    advisorDescDefault: '专业健康咨询服务',
+    clickToChat: '点击医护数字人开始咨询',
+    systemBusy: '系统正在忙，请稍后刷新',
+    refresh: '刷新',
+    editTitle: '编辑标题',
+    save: '保存',
+    cancel: '取消',
+  },
+
+  // 医护端（Lawyer Portal）
+  lawyer: {
+    headerTitle: '医护端控制台',
+    tabs: {
+      assistant: '医助对话',
+      twin: '数字分身',
+      knowledge: '知识库',
+    },
+    assistant: {
+      title: 'AI 医助',
+      emptyTitle: '您好，我是您的医助',
+      emptyDescription: '我可以协助您整理病史要点、文献与指南检索、患教文案与病历文书草稿等。',
+      suggestions: ['门诊病史摘要怎么写？', '糖尿病随访要点有哪些？', '常见药物相互作用查询'],
+      inputPlaceholder: '描述您的临床或工作问题',
+      inputHint: '支持图片（jpg/png/gif/webp）与文档（pdf/doc/docx/txt/md）。AI 助手仅供参考，请结合临床判断与规范。',
+      notConfigured: '系统助手未配置',
+      notConfiguredHint: '请在环境变量中设置 VITE_SYSTEM_ASSISTANT_AGENT_CODE',
+    },
+    twin: {
+      title: '数字分身',
+      description: '让 AI 学习您的专业风格，为您初步接待咨询用户',
+      noTwin: '您还没有创建数字分身',
+      addTwin: '添加你的数字分身',
+      createTitle: '新建数字分身',
+      namePlaceholder: '例如：李医生',
+      descPlaceholder: '描述（可选）',
+      editTitle: '编辑数字分身',
+      published: '已发布',
+      draft: '草稿',
+      saveDraft: '存为草稿',
+      publish: '发布',
+      saveAndPublish: '保存并发布',
+      draftHint: '草稿状态下，用户无法在发现页面看到您的数字分身',
+      systemPromptPlaceholder: '描述 AI 的专业方向、擅长病种、沟通方式与注意事项等',
+      knowledgeBaseLabel: '知识库(RAG)',
+      knowledgeBaseHint: '绑定知识库后，AI 会基于知识库内容回答问题',
+      preSkillsLabel: '对话前技能',
+      imageUpload: '图像上传',
+      docUpload: '文档上传',
+      hideFromDiscover: '不在「发现」页面显示',
+      hideFromDiscoverHint: '开启后，用户将无法在发现页面看到此数字分身',
+    },
+    knowledge: {
+      title: '知识库管理',
+      searchPlaceholder: '搜索知识库...',
+      newKb: '新建库',
+      createTitle: '新建知识库',
+      namePlaceholder: '知识库名称',
+      descPlaceholder: '描述（可选）',
+      noKb: '暂无知识库',
+      noKbSearch: '未找到匹配的知识库',
+      createFirst: '创建第一个知识库',
+      noDocs: '暂无文档',
+      uploadFirst: '上传第一个文档',
+      uploadDoc: '上传文档',
+      addLink: '添加链接',
+      addText: '添加文本',
+      addLinkTitle: '添加链接',
+      addTextTitle: '添加纯文本',
+      linkPlaceholder: 'https://example.com/document.pdf',
+      linkHint: '支持网页、PDF 等公开可访问的链接',
+      docNamePlaceholder: '文档名称（可选）',
+      textNamePlaceholder: '文档名称',
+      textContentPlaceholder: '输入文本内容...',
+    },
+  },
+
+  // 院务端
+  judiciary: {
+    title: '院务端系统',
+    description: '该模块正在开发中，将为院务人员提供运营与质控等智能辅助。',
+    comingSoon: 'Coming Soon',
+    backToLogin: '返回选择角色',
+  },
+
+  // 通用
+  common: {
+    loading: '加载中...',
+    saving: '保存中...',
+    creating: '创建中...',
+    uploading: '上传中...',
+    adding: '添加中...',
+    publishing: '发布中...',
+    create: '创建',
+    add: '添加',
+    delete: '删除',
+    cancel: '取消',
+    confirm: '确认',
+    save: '保存',
+    logout: '退出登录',
+    networkError: '网络错误，请稍后重试',
+  },
+} as const;
+
+export type ThemeTexts = typeof texts;

@@ -6,6 +6,7 @@
 
 - **legalwise** - 律小乖（法律咨询服务）
 - **vc** - 凌云资本（VC 投资服务）
+- **healthcare** - 医小伴（医疗健康咨询与医护工作流）
 
 ## 快速开始
 
@@ -46,7 +47,7 @@ npm run dev
 | `VITE_SYSTEM_AGENT_CODE` | 系统主 Agent | `legalwise` |
 | `VITE_SYSTEM_ASSISTANT_AGENT_CODE` | 系统助手 Agent | `legalwise-assistant` |
 | `VITE_SYSTEM_SERVICE_AGENT_CODE` | 系统服务 Agent | `legalwise-system` |
-| `VITE_SITE_THEME` | 主题 (`legalwise` \| `vc`) | `legalwise` |
+| `VITE_SITE_THEME` | 主题 (`legalwise` \| `vc` \| `healthcare`) | `legalwise` |
 | `VITE_REGISTER_INVITATION_CODE` | 注册邀请码 | `legalwise` |
 
 ## 服务端初始化
