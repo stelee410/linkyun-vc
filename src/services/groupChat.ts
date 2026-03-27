@@ -97,14 +97,37 @@ async function addFriend(agentId: string | number): Promise<void> {
   }
 }
 
+/** 设置是否与 Agent 创作者共享群聊 - PATCH /api/v1/user/group-chats/{id}/share */
+export async function setGroupChatSharedWithCreator(
+  groupChatId: string | number,
+  shared: boolean
+): Promise<void> {
+  const res = await requestWithAuth(`/api/v1/user/group-chats/${groupChatId}/share`, {
+    method: 'PATCH',
+    body: { shared_with_creator: shared },
+  });
+  await parseJsonResponse<{ shared_with_creator: boolean }>(res);
+}
+
+export interface CreateGroupChatOptions {
+  /** 创建成功后是否与创作者共享；默认 true */
+  sharedWithCreator?: boolean;
+}
+
 /** 创建群聊 - POST /api/v1/user/group-chats
  * 个人用户与 VITE_SYSTEM_AGENT_CODE 设定的 AI Agent 组成群组
  * API 要求: agent_ids (数字数组), topic, title
  * 如果 Agent 不是好友，会自动添加好友后重试
+ * 默认在创建后开启「与创作者共享」（可通过 sharedWithCreator: false 关闭）
  */
-export async function createGroupChat(agentId: string | number): Promise<GroupChatInfo> {
+export async function createGroupChat(
+  agentId: string | number,
+  options?: CreateGroupChatOptions
+): Promise<GroupChatInfo> {
   const id = typeof agentId === 'number' ? agentId : parseInt(String(agentId), 10);
   if (Number.isNaN(id)) throw new Error('无效的 Agent ID');
+
+  const shouldShare = options?.sharedWithCreator !== false;
 
   const doCreate = async (): Promise<GroupChatInfo> => {
     const res = await requestWithAuth('/api/v1/user/group-chats', {
@@ -117,6 +140,9 @@ export async function createGroupChat(agentId: string | number): Promise<GroupCh
     });
     const data = await parseJsonResponse<GroupChatInfo>(res);
     if (!data?.id) throw new Error('创建群聊失败');
+    if (shouldShare) {
+      await setGroupChatSharedWithCreator(data.id, true);
+    }
     return data;
   };
 
