@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, MessageSquare, Trash2, LogOut, X, Loader2, type LucideIcon } from 'lucide-react';
+import { Plus, MessageSquare, Trash2, LogOut, X, Loader2, BadgeCheck, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { ChatSession } from '../../types';
 import { texts, tw } from '../../themes';
@@ -133,7 +133,16 @@ export default function ChatSidebar({
                   : `${styles.inactive} border-transparent`
               )}
             >
-              <MessageSquare className="w-4 h-4 shrink-0" />
+              {session.creatorReviewed ? (
+                <BadgeCheck
+                  className="w-4 h-4 shrink-0 text-emerald-600"
+                  strokeWidth={2.5}
+                  title={texts.individual.creatorReviewedBannerHint}
+                  aria-label={texts.individual.creatorReviewedPill}
+                />
+              ) : (
+                <MessageSquare className="w-4 h-4 shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
                 <span className="block truncate">{session.title}</span>
                 {session.agentName && (

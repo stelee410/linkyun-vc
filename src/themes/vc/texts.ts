@@ -76,6 +76,12 @@ export const texts = {
     editTitle: '编辑标题',
     save: '保存',
     cancel: '取消',
+    shareWithCreator: '与创作者共享聊天',
+    shareWithCreatorTitle:
+      '开启后，Agent 创作者可查看本会话内容，用于改进服务；关闭后对方将无法查看本会话。',
+    creatorReviewedPill: '已确认',
+    creatorReviewedBannerHint:
+      'Agent 创作者已在后台对本对话进行确认或审阅，表示其已关注该会话内容。',
   },
   
   // VC投资人端（Lawyer Portal）

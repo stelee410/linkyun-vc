@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, RefreshCw, TrendingUp, Pencil, Sparkles, X, Check, Compass, Wrench, Bot, ChevronRight, Loader2 } from 'lucide-react';
+import { Menu, RefreshCw, TrendingUp, Pencil, Sparkles, X, Check, Compass, Wrench, Bot, ChevronRight, Loader2, BadgeCheck } from 'lucide-react';
 import { ChatSession, Message } from '../types';
 import {
   getSystemAgentId,
@@ -9,6 +9,8 @@ import {
   createGroupChat,
   deleteGroupChat,
   updateGroupChat,
+  getGroupChat,
+  setGroupChatSharedWithCreator,
   type GroupChatInfo,
 } from '../services/groupChat';
 import { generateSessionTitle } from '../services/chat';
@@ -34,6 +36,7 @@ import { useVoiceInput } from '../hooks/useVoiceInput';
 import { getUserWorkspaces } from '../services/workspace';
 import { texts, tw } from '../themes';
 import { useGroupChatMessaging, fetchSessionMessages } from '../hooks/useGroupChatMessaging';
+import { subscribeUserHubSessionEvents } from '../services/userHubSse';
 
 const useLinkyunChat = !!SYSTEM_AGENT_CODE?.trim();
 
@@ -75,12 +78,15 @@ export default function IndividualPortal() {
   const [lawyerAgents, setLawyerAgents] = useState<AgentInfo[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [startingChatWithAgent, setStartingChatWithAgent] = useState<string | null>(null);
+  const [shareUpdating, setShareUpdating] = useState(false);
   const agentIdRef = useRef<string | null>(null);
   const assistantAgentIdRef = useRef<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   /** 已加载过消息的 sessionId 集合，防止 useEffect([urlSessionId, sessions]) 无限循环 */
   const loadedSessionIds = useRef<Set<string>>(new Set());
+  /** 用户操作共享开关后递增，避免过期的 getGroupChat 覆盖本地状态 */
+  const shareSyncNonceRef = useRef(0);
 
   const messaging = useGroupChatMessaging({ sessions, setSessions, useLinkyunChat });
 
@@ -189,6 +195,8 @@ export default function IndividualPortal() {
         }
         // 判断是否为系统 Agent 群聊
         const isSystemAgent = agentId === String(systemAgentId);
+        const sharedWithCreator = g.shared_with_creator ?? true;
+        const creatorReviewed = g.verified === true;
         return {
           id: String(g.id),
           title: (g.title ?? (g as { topic?: string }).topic ?? '新对话') as string,
@@ -196,6 +204,8 @@ export default function IndividualPortal() {
           createdAt: g.created_at ? new Date(g.created_at as string).getTime() : Date.now(),
           agentId: isSystemAgent ? undefined : agentId,
           agentName: isSystemAgent ? undefined : agentName,
+          sharedWithCreator,
+          creatorReviewed,
         };
       });
       chatSessions.sort((a, b) => b.createdAt - a.createdAt);
@@ -297,6 +307,44 @@ export default function IndividualPortal() {
     }
   }, [activeSessionId, navigate]);
 
+  // 打开会话时从详情同步「与创作者共享」状态（列表可能不返回该字段）
+  useEffect(() => {
+    if (!useLinkyunChat || !activeSessionId) return;
+    let cancelled = false;
+    const sid = activeSessionId;
+    const nonceAtFetch = shareSyncNonceRef.current;
+    getGroupChat(sid)
+      .then((g) => {
+        if (cancelled || shareSyncNonceRef.current !== nonceAtFetch) return;
+        const swc = g.shared_with_creator ?? true;
+        const creatorReviewed = g.verified === true;
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sid ? { ...s, sharedWithCreator: swc, creatorReviewed } : s
+          )
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSessionId, useLinkyunChat]);
+
+  // 实时同步创作者对「已确认」状态的更新（SSE，与推送消息同频道）
+  useEffect(() => {
+    if (!useLinkyunChat || !activeSessionId) return;
+    return subscribeUserHubSessionEvents({
+      sessionId: activeSessionId,
+      onSessionVerified: (verified) => {
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === activeSessionId ? { ...s, creatorReviewed: verified } : s
+          )
+        );
+      },
+    });
+  }, [activeSessionId, useLinkyunChat]);
+
   const createNewSession = async () => {
     if (creatingSession || !useLinkyunChat) return;
     setCreatingSession(true);
@@ -309,6 +357,8 @@ export default function IndividualPortal() {
         title: '新对话',
         messages: [],
         createdAt: Date.now(),
+        sharedWithCreator: true,
+        creatorReviewed: group.verified === true,
       };
       setSessions((prev) => [newSession, ...prev]);
       navigate(`/individual/chat/${newSession.id}`);
@@ -333,6 +383,8 @@ export default function IndividualPortal() {
         createdAt: Date.now(),
         agentId: agent.id,
         agentName: agent.name || '律师助手',
+        sharedWithCreator: true,
+        creatorReviewed: group.verified === true,
       };
       setSessions((prev) => [newSession, ...prev]);
       navigate(`/individual/chat/${newSession.id}`);
@@ -415,6 +467,27 @@ export default function IndividualPortal() {
     }
   };
 
+  const handleShareWithCreatorToggle = async () => {
+    if (!activeSessionId || !activeSession || shareUpdating) return;
+    shareSyncNonceRef.current += 1;
+    const current = activeSession.sharedWithCreator !== false;
+    const next = !current;
+    setShareUpdating(true);
+    setSessions((prev) =>
+      prev.map((s) => (s.id === activeSessionId ? { ...s, sharedWithCreator: next } : s))
+    );
+    try {
+      await setGroupChatSharedWithCreator(activeSessionId, next);
+    } catch (e) {
+      console.error('更新共享设置失败', e);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === activeSessionId ? { ...s, sharedWithCreator: current } : s))
+      );
+    } finally {
+      setShareUpdating(false);
+    }
+  };
+
   const handleSend = async (overrideText?: string) => {
     const text = (overrideText ?? input).trim();
     const filesToSend = pendingFiles.filter((p) => !p.error);
@@ -437,6 +510,8 @@ export default function IndividualPortal() {
           title: '新对话',
           messages: [],
           createdAt: Date.now(),
+          sharedWithCreator: true,
+          creatorReviewed: group.verified === true,
         };
         setSessions((prev) => [newSession, ...prev]);
         sessionId = newSession.id;
@@ -527,6 +602,14 @@ export default function IndividualPortal() {
             <h1 className="font-semibold text-slate-900 truncate">
               {activeSession?.title || texts.individual.headerTitle}
             </h1>
+            {activeSession?.creatorReviewed && (
+              <span
+                className="shrink-0 inline-flex items-center justify-center p-0.5 rounded-lg text-emerald-600"
+                title={texts.individual.creatorReviewedBannerHint}
+              >
+                <BadgeCheck className="w-5 h-5" strokeWidth={2.5} aria-label={texts.individual.creatorReviewedPill} />
+              </span>
+            )}
             {activeSession && (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button
@@ -547,6 +630,33 @@ export default function IndividualPortal() {
               </div>
             )}
           </div>
+          {activeSession && (
+            <div
+              className="flex items-center gap-2 shrink-0 ml-1"
+              title={texts.individual.shareWithCreatorTitle}
+            >
+              <span className="text-xs text-slate-500 leading-tight max-w-[9rem] sm:max-w-none hidden sm:inline">
+                {texts.individual.shareWithCreator}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={activeSession.sharedWithCreator !== false}
+                aria-label={texts.individual.shareWithCreator}
+                disabled={shareUpdating}
+                onClick={handleShareWithCreatorToggle}
+                className={`relative h-7 w-11 rounded-full transition-colors shrink-0 disabled:opacity-50 ${
+                  activeSession.sharedWithCreator !== false ? tw.tabIndicator : 'bg-slate-200'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    activeSession.sharedWithCreator !== false ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">

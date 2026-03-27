@@ -251,6 +251,11 @@ export function useGroupChatMessaging({
           attachments: attachForApi,
         });
 
+        // 用户继续发消息后，会话不再处于「创作者已确认」状态（与后端清除 verified 一致）
+        setSessions((prev) =>
+          prev.map((s) => (s.id === sessionId ? { ...s, creatorReviewed: false } : s))
+        );
+
         if (syncContent) {
           // 同步 Agent：全量刷新获取真实消息 ID / 时间戳
           await refreshSessionMessages(sessionId);

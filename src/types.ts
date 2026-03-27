@@ -27,6 +27,10 @@ export interface ChatSession {
   agentId?: string;
   /** 该会话对应的 Agent 名称（用于在侧边栏显示） */
   agentName?: string;
+  /** 是否与 Agent 创作者共享本会话（对应 API shared_with_creator；未拉取到时默认视为开启） */
+  sharedWithCreator?: boolean;
+  /** 创作者是否已确认/审阅本会话（对应 API verified） */
+  creatorReviewed?: boolean;
 }
 
 export interface User {

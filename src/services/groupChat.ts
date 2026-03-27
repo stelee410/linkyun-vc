@@ -21,6 +21,10 @@ export interface GroupChatInfo {
   created_at?: string;
   participants?: GroupChatParticipant[];
   agent_ids?: (string | number)[];
+  /** 是否与创作者共享（列表/详情可能返回） */
+  shared_with_creator?: boolean;
+  /** 创作者是否已在后台确认/审阅本会话 */
+  verified?: boolean;
   [key: string]: unknown;
 }
 
@@ -67,6 +71,7 @@ export async function listGroupChats(params?: {
   } else if (data && typeof data === 'object') {
     const d = data as Record<string, unknown>;
     list =
+      (d.chats as GroupChatInfo[] | undefined) ??
       (d.items as GroupChatInfo[] | undefined) ??
       (d.group_chats as GroupChatInfo[] | undefined) ??
       (d.list as GroupChatInfo[] | undefined) ??
